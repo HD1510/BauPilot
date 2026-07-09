@@ -2,9 +2,16 @@
 
 namespace App\Providers;
 
+use App\Models\ChangeOrder;
+use App\Models\ExternalOffer;
+use App\Models\IncomingInvoice;
+use App\Models\Offer;
+use App\Models\OutgoingInvoice;
+use App\Models\Project;
 use App\Models\User;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +38,23 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureGates();
         $this->configureBlueprintMacros();
+        $this->configureMorphMap();
+    }
+
+    /**
+     * Stabile Aliasnamen für polymorphe Verknüpfungen (documents,
+     * retentions) — Klassennamen gehören nicht in die Datenbank.
+     */
+    protected function configureMorphMap(): void
+    {
+        Relation::enforceMorphMap([
+            'offer' => Offer::class,
+            'project' => Project::class,
+            'change_order' => ChangeOrder::class,
+            'external_offer' => ExternalOffer::class,
+            'outgoing_invoice' => OutgoingInvoice::class,
+            'incoming_invoice' => IncomingInvoice::class,
+        ]);
     }
 
     /**

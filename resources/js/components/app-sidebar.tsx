@@ -1,8 +1,12 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
     Car,
     Contact,
+    FileInput,
+    FileOutput,
+    FileText,
+    FolderKanban,
     HardHat,
     LayoutGrid,
     Package,
@@ -47,7 +51,19 @@ const masterDataNavItems: NavItem[] = [
     { title: 'Material', href: '/materials', icon: Package },
 ];
 
+const projectNavItems: NavItem[] = [
+    { title: 'Angebote', href: '/offers', icon: FileText },
+    { title: 'Projekte', href: '/projects', icon: FolderKanban },
+];
+
+const invoiceNavItems: NavItem[] = [
+    { title: 'Ausgangsrechnungen', href: '/outgoing-invoices', icon: FileOutput },
+    { title: 'Eingangsrechnungen', href: '/incoming-invoices', icon: FileInput },
+];
+
 export function AppSidebar() {
+    const { tenancy } = usePage().props;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -65,6 +81,19 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} label="Übersicht" />
+                <NavMain
+                    items={
+                        tenancy.canViewFinancials
+                            ? projectNavItems
+                            : projectNavItems.filter(
+                                  (item) => item.href !== '/offers',
+                              )
+                    }
+                    label="Vertrieb & Projekte"
+                />
+                {tenancy.canViewFinancials && (
+                    <NavMain items={invoiceNavItems} label="Belege" />
+                )}
                 <NavMain items={masterDataNavItems} label="Stammdaten" />
             </SidebarContent>
 
