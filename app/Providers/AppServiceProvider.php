@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\User;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +30,28 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureGates();
+        $this->configureBlueprintMacros();
+    }
+
+    /**
+     * Wiederkehrende Spalten fachlicher Tabellen (Architekturblatt 3/4.1):
+     * company_id auf jeder fachlichen Tabelle, lock_version für die
+     * optimistische Sperre, created_by/updated_by als Benutzerstempel.
+     */
+    protected function configureBlueprintMacros(): void
+    {
+        Blueprint::macro('companyOwned', function (): void {
+            /** @var Blueprint $this */
+            $this->foreignId('company_id')->constrained()->restrictOnDelete();
+        });
+
+        Blueprint::macro('businessMeta', function (): void {
+            /** @var Blueprint $this */
+            $this->unsignedInteger('lock_version')->default(0);
+            $this->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $this->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $this->timestampsTz();
+        });
     }
 
     /**

@@ -1,5 +1,14 @@
 import { Link } from '@inertiajs/react';
-import { Building2, LayoutGrid } from 'lucide-react';
+import {
+    Building2,
+    Car,
+    Contact,
+    HardHat,
+    LayoutGrid,
+    Package,
+    Tags,
+    Truck,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { CompanySwitcher } from '@/components/company-switcher';
 import { NavMain } from '@/components/nav-main';
@@ -29,6 +38,15 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const masterDataNavItems: NavItem[] = [
+    { title: 'Kunden', href: '/customers', icon: Contact },
+    { title: 'Lieferanten', href: '/suppliers', icon: Truck },
+    { title: 'Kostenarten', href: '/cost-types', icon: Tags },
+    { title: 'Mitarbeiter', href: '/employees', icon: HardHat },
+    { title: 'Fahrzeuge', href: '/vehicles', icon: Car },
+    { title: 'Material', href: '/materials', icon: Package },
+];
+
 export function AppSidebar() {
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -46,7 +64,8 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Übersicht" />
+                <NavMain items={masterDataNavItems} label="Stammdaten" />
             </SidebarContent>
 
             <SidebarFooter>

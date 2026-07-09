@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             'tenancy' => fn (): array => $this->tenancy($request),
             'flash' => fn (): array => [
                 'success' => $request->session()->get('success'),
+                'duplicates' => $request->session()->get('duplicates'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

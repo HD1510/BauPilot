@@ -14,7 +14,12 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             tenancy: Tenancy;
-            flash: { success?: string | null };
+            flash: {
+                success?: string | null;
+                duplicates?:
+                    | { id: number; name: string; similarity: number }[]
+                    | null;
+            };
             sidebarOpen: boolean;
             [key: string]: unknown;
         };
