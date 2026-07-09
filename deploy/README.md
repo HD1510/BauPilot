@@ -43,6 +43,17 @@ Den Uptime-Check auf `/up/details` zeigen lassen — dann ist ein
 hängender Worker oder ausgefallener Cron sofort sichtbar, nicht erst
 beim ausbleibenden Digest.
 
+## BauPilot als Programm am Arbeitsplatz (PWA)
+
+BauPilot ist als PWA installierbar — Voraussetzung ist nur HTTPS
+(lokal genügt `localhost`). Auf Windows-Rechnern: Seite in **Edge oder
+Chrome** öffnen, dann Menü → **„BauPilot installieren“** (Edge:
+„Apps → Diese Website als App installieren“). Danach läuft BauPilot
+im eigenen Fenster mit Icon in Startmenü/Taskleiste; Updates kommen
+automatisch mit jedem Deploy, es ist nichts zu verteilen. Am Handy
+analog über „Zum Startbildschirm hinzufügen“ — darüber kommt später
+auch Web-Push (M6).
+
 ## Backup (Erinnerung, außerhalb des Repos)
 
 Nächtlicher `pg_dump`, asymmetrisch verschlüsselt (age/GPG, privater

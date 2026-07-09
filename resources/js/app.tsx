@@ -38,3 +38,12 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// PWA: Service Worker macht BauPilot installierbar (eigenes Fenster am
+// Desktop) und zeigt ohne Netz eine Offline-Seite. Im Vite-Dev-Server
+// nicht registrieren — dort stört er das Hot-Reloading nur.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+        void navigator.serviceWorker.register('/sw.js');
+    });
+}

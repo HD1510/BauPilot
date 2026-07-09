@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Offline – BauPilot</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        main { text-align: center; padding: 2rem; max-width: 26rem; }
+        svg { width: 72px; height: 72px; margin-bottom: 1rem; }
+        h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+        p { color: #475569; line-height: 1.5; margin: 0 0 1.5rem; }
+        button {
+            background: #0c4a6e; color: #fff; border: 0; border-radius: .5rem;
+            padding: .6rem 1.4rem; font-size: 1rem; cursor: pointer;
+        }
+        @media (prefers-color-scheme: dark) {
+            body { background: #0f172a; color: #f8fafc; }
+            p { color: #94a3b8; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <svg viewBox="0 0 512 512" role="img" aria-label="BauPilot">
+            <rect width="512" height="512" rx="112" fill="#0c4a6e"/>
+            <rect x="232" y="172" width="48" height="58" rx="16" fill="#fbbf24"/>
+            <path d="M146 306a110 110 0 0 1 220 0z" fill="#f59e0b"/>
+            <rect x="104" y="298" width="304" height="40" rx="20" fill="#d97706"/>
+        </svg>
+        <h1>Keine Verbindung</h1>
+        <p>BauPilot ist gerade nicht erreichbar. Bitte Internetverbindung prüfen und erneut versuchen.</p>
+        <button onclick="location.reload()">Erneut versuchen</button>
+    </main>
+</body>
+</html>
