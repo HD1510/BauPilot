@@ -1,0 +1,25 @@
+# BauPilot Queue-Worker als systemd-Dienst (Architekturblatt Abschnitt 9:
+# Datenbank-Treiber, automatischer Neustart). Nach /etc/systemd/system/
+# kopieren, Pfade und Benutzer anpassen, dann:
+#   systemctl daemon-reload && systemctl enable --now baupilot-worker
+#
+# Forge/Ploi legen so einen Dienst über ihre Daemon-Funktion selbst an —
+# diese Datei ist die Vorlage für den manuellen Betrieb.
+
+[Unit]
+Description=BauPilot Queue Worker
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/baupilot
+# --max-time: der Worker beendet sich stündlich selbst und wird von
+# systemd frisch gestartet — gegen schleichende Speicherlecks.
+# queue:restart (im Deploy-Skript) beendet ihn ebenfalls sauber.
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,53 @@
+# Betrieb und Deployment
+
+Vorlagen für den Serverbetrieb laut Architekturblatt Abschnitt 10
+(eine Hetzner-Instanz, Nginx + PHP-FPM + PostgreSQL, Deploy über
+Laravel Forge oder Ploi). Alles hier sind **Vorlagen** — Pfade,
+Benutzer und Domain beim Einrichten anpassen.
+
+## Dateien
+
+| Datei | Zweck |
+| --- | --- |
+| `deploy.sh` | Deploy-Ablauf (Composer, npm build, Migrationen, Caches, Worker-Neustart) — als Forge-/Ploi-Deploy-Skript oder von Hand |
+| `baupilot-worker.service` | systemd-Vorlage für den Queue-Worker (Datenbank-Treiber, automatischer Neustart) |
+
+## Scheduler (Cron)
+
+Der Laravel-Scheduler läuft als minütlicher Cron-Eintrag des
+Web-Benutzers (Forge/Ploi richten das über ihre Scheduler-Funktion ein):
+
+```cron
+* * * * * cd /var/www/baupilot && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Er verschickt den täglichen Digest (06:00 Europe/Vienna) und schreibt
+minütlich den Heartbeat für die Betriebsüberwachung.
+
+## Betriebsüberwachung
+
+Zwei Endpunkte für den externen Uptime-Check:
+
+- `GET /up` — einfacher Ping (Framework-Standard, immer 200 solange die App läuft).
+- `GET /up/details?token=…` — meldet Plattenfüllstand, Queue-Rückstau
+  (Alter des ältesten wartenden Jobs) und den Zeitstempel des letzten
+  Scheduler-Laufs. Bei Überschreiten der Schwellwerte antwortet er mit
+  **503**, der Uptime-Check schlägt also ohne JSON-Parsen Alarm.
+
+Konfiguration in `config/monitoring.php` bzw. `.env`:
+`HEALTH_CHECK_TOKEN` (Zugriffsschutz, in Produktion setzen),
+`HEALTH_DISK_WARN_PERCENT` (Standard 90), `HEALTH_QUEUE_MAX_AGE_MINUTES`
+(15), `HEALTH_SCHEDULER_MAX_AGE_MINUTES` (10).
+
+Den Uptime-Check auf `/up/details` zeigen lassen — dann ist ein
+hängender Worker oder ausgefallener Cron sofort sichtbar, nicht erst
+beim ausbleibenden Digest.
+
+## Backup (Erinnerung, außerhalb des Repos)
+
+Nächtlicher `pg_dump`, asymmetrisch verschlüsselt (age/GPG, privater
+Schlüssel offline), Write-only in einen eigenen Backup-Bucket, 30 Tage
+Aufbewahrung, wöchentlicher Server-Snapshot. Der Backup-Job pingt nach
+jedem erfolgreichen Upload einen Healthcheck-Dienst (Dead-Man-Switch).
+Einmal im Monat testweise auf Staging zurückspielen. Details:
+Architekturblatt Abschnitt 10.

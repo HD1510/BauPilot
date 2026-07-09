@@ -2,10 +2,15 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeadlineController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\NotificationSettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+// Betriebsüberwachung (Abschnitt 10): /up bleibt der einfache Ping des
+// Frameworks, /up/details meldet Platte, Queue-Rückstau und Scheduler.
+Route::get('up/details', HealthController::class)->name('health.details');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
