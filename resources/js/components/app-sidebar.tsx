@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
+    CalendarClock,
     Car,
     Contact,
     FileInput,
@@ -34,6 +35,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Fristen',
+        href: '/deadlines',
+        icon: CalendarClock,
     },
     {
         title: 'Firmen',
