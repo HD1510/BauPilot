@@ -29,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $notes
  * @property int $lock_version
  */
-#[Fillable(['name', 'short_code', 'payment_target_days', 'default_cost_type_id', 'skonto_percent', 'skonto_days', 'active', 'notes'])]
+#[Fillable(['name', 'short_code', 'payment_target_days', 'default_cost_type_id', 'skonto_percent', 'skonto_days', 'active', 'notes', 'source_ref'])]
 class Supplier extends Model
 {
     /** @use HasFactory<SupplierFactory> */

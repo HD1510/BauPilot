@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
     CalendarClock,
+    FileSpreadsheet,
     Car,
     Contact,
     FileInput,
@@ -65,6 +66,7 @@ const projectNavItems: NavItem[] = [
 const invoiceNavItems: NavItem[] = [
     { title: 'Ausgangsrechnungen', href: '/outgoing-invoices', icon: FileOutput },
     { title: 'Eingangsrechnungen', href: '/incoming-invoices', icon: FileInput },
+    { title: 'Excel-Import', href: '/imports', icon: FileSpreadsheet },
 ];
 
 export function AppSidebar() {

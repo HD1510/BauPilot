@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $retention_id
  * @property int $lock_version
  */
-#[Fillable(['paid_on', 'amount', 'retention_id'])]
+#[Fillable(['paid_on', 'amount', 'retention_id', 'source_ref'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */

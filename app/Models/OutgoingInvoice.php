@@ -46,7 +46,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable([
     'doc_type', 'number', 'invoice_date', 'due_on', 'customer_id', 'project_id',
     'original_invoice_id', 'final_invoice_id', 'net', 'vat_rate', 'vat', 'gross',
-    'zero_rate_reason', 'notes',
+    'zero_rate_reason', 'notes', 'source_ref',
 ])]
 class OutgoingInvoice extends Model implements HasDocuments
 {

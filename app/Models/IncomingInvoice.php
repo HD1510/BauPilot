@@ -47,7 +47,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'supplier_id', 'supplier_invoice_no', 'invoice_date', 'date_estimated',
     'net', 'vat_rate', 'vat', 'gross', 'reverse_charge', 'cost_type_id',
     'project_id', 'payment_method', 'payment_due_on', 'skonto_amount',
-    'skonto_until', 'subject', 'notes',
+    'skonto_until', 'subject', 'notes', 'source_ref',
+    'payment_status', 'paid_on', 'paid_amount',
 ])]
 class IncomingInvoice extends Model implements HasDocuments
 {

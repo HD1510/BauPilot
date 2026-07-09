@@ -31,7 +31,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property CarbonImmutable|null $deleted_at
  * @property int $lock_version
  */
-#[Fillable(['name', 'address', 'phone', 'email', 'vat_id', 'payment_target_days', 'external_ref', 'notes'])]
+#[Fillable(['name', 'address', 'phone', 'email', 'vat_id', 'payment_target_days', 'external_ref', 'notes', 'source_ref'])]
 class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
