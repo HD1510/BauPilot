@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
     CalendarClock,
+    Clock,
     FileSpreadsheet,
     Car,
     Contact,
@@ -47,6 +48,11 @@ const mainNavItems: NavItem[] = [
         title: 'Aufgaben',
         href: '/tasks',
         icon: SquareCheckBig,
+    },
+    {
+        title: 'Zeiten',
+        href: '/time-entries',
+        icon: Clock,
     },
     {
         title: 'Firmen',

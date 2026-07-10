@@ -106,6 +106,12 @@ class Project extends Model implements HasDocuments
         return $this->hasMany(Task::class);
     }
 
+    /** @return HasMany<TimeEntry, $this> */
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class);
+    }
+
     /** @return HasMany<ProjectNote, $this> */
     public function projectNotes(): HasMany
     {

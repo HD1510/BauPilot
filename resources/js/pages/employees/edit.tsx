@@ -7,16 +7,20 @@ import {
     
 } from '@/components/master-data/employee-form';
 import type {EmployeeFormValues, UserOption} from '@/components/master-data/employee-form';
+import { OvertimeSection } from '@/components/master-data/overtime-section';
+import type { OvertimeData } from '@/components/master-data/overtime-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 type Props = {
     employee: EmployeeFormValues & { id: number; active: boolean };
     users: UserOption[];
     canWrite: boolean;
+    overtime: OvertimeData | null;
 };
 
-export default function EmployeesEdit({ employee, users, canWrite }: Props) {
+export default function EmployeesEdit({ employee, users, canWrite, overtime }: Props) {
     return (
         <>
             <Head title={`Mitarbeiter: ${employee.name}`} />
@@ -64,6 +68,17 @@ export default function EmployeesEdit({ employee, users, canWrite }: Props) {
                     submitLabel="Änderungen speichern"
                     disabled={!canWrite || !employee.active}
                 />
+
+                {overtime && (
+                    <>
+                        <Separator />
+                        <OvertimeSection
+                            employeeId={employee.id}
+                            overtime={overtime}
+                            canWrite={canWrite}
+                        />
+                    </>
+                )}
             </div>
         </>
     );

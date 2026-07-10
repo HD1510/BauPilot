@@ -57,6 +57,16 @@ type IncomingRow = {
     payment_status_label: string;
 };
 
+type Figures = {
+    revenue_net: number;
+    external_costs_net: number;
+    hours: number;
+    labor_cost: number;
+    unrated_hours: number;
+    contribution: number;
+    margin_percent: number | null;
+};
+
 type Props = {
     project: {
         id: number;
@@ -76,6 +86,7 @@ type Props = {
     };
     appointments: Appointment[];
     changeOrders: ChangeOrderRow[];
+    figures: Figures | null;
     externalOffers: ExternalOfferRow[] | null;
     openItems: OpenItemRow[] | null;
     incomingInvoices: IncomingRow[] | null;
@@ -107,6 +118,7 @@ export default function ProjectsShow({
     project,
     appointments,
     changeOrders,
+    figures,
     externalOffers,
     openItems,
     incomingInvoices,
@@ -155,6 +167,24 @@ export default function ProjectsShow({
                     <p className="max-w-3xl text-sm text-muted-foreground">
                         {project.description}
                     </p>
+                )}
+
+                {/* Projektzahlen mit Deckungsbeitrag (M8) — nur Finanzrollen */}
+                {figures && (
+                    <div className="flex max-w-3xl flex-wrap gap-3">
+                        <FigureTile label="Erlöse (netto)" value={formatEUR(figures.revenue_net)} />
+                        <FigureTile label="Fremdkosten (netto)" value={formatEUR(figures.external_costs_net)} />
+                        <FigureTile
+                            label={`Lohnkosten (${figures.hours.toLocaleString('de-AT')} h)`}
+                            value={formatEUR(figures.labor_cost)}
+                            hint={figures.unrated_hours > 0 ? `${figures.unrated_hours.toLocaleString('de-AT')} h ohne Stundensatz` : undefined}
+                        />
+                        <FigureTile
+                            label={`Deckungsbeitrag${figures.margin_percent !== null ? ` (${figures.margin_percent.toLocaleString('de-AT')} %)` : ''}`}
+                            value={formatEUR(figures.contribution)}
+                            negative={figures.contribution < 0}
+                        />
+                    </div>
                 )}
 
                 <Separator />
@@ -324,6 +354,30 @@ export default function ProjectsShow({
                 <NotesSection projectId={project.id} notes={projectNotes} />
             </div>
         </>
+    );
+}
+
+function FigureTile({
+    label,
+    value,
+    hint,
+    negative = false,
+}: {
+    label: string;
+    value: string;
+    hint?: string;
+    negative?: boolean;
+}) {
+    return (
+        <div className="min-w-40 rounded-lg border border-sidebar-border/70 px-4 py-2 dark:border-sidebar-border">
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div
+                className={`text-lg font-semibold ${negative ? 'text-red-600 dark:text-red-400' : ''}`}
+            >
+                {value}
+            </div>
+            {hint && <div className="text-xs text-amber-600 dark:text-amber-400">{hint}</div>}
+        </div>
     );
 }
 

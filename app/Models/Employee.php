@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Mitarbeiter — auch ohne Benutzerkonto (Architekturblatt 4.3).
@@ -44,5 +45,23 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return HasMany<TimeEntry, $this> */
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class);
+    }
+
+    /** @return HasMany<OvertimeEntry, $this> */
+    public function overtimeEntries(): HasMany
+    {
+        return $this->hasMany(OvertimeEntry::class);
+    }
+
+    /** @return HasMany<OvertimePayout, $this> */
+    public function overtimePayouts(): HasMany
+    {
+        return $this->hasMany(OvertimePayout::class);
     }
 }

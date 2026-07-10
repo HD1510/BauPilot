@@ -15,6 +15,7 @@ use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\Invoicing\OpenItemsQuery;
+use App\Support\Projects\ProjectFigures;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,6 +131,8 @@ class ProjectController extends Controller
                         'valid_until' => $externalOffer->valid_until?->toDateString(),
                     ])
                 : null,
+            // Projektzahlen mit Deckungsbeitrag (M8) — nur Finanzrollen.
+            'figures' => $financials ? app(ProjectFigures::class)->forProject($project) : null,
             'openItems' => $financials
                 ? app(OpenItemsQuery::class)->rows(includeSettled: true, projectId: $project->id)
                     ->map(fn (array $row): array => [

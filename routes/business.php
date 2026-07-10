@@ -9,6 +9,7 @@ use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\OfferController;
 use App\Http\Controllers\Sales\ProjectController;
 use App\Http\Controllers\Sales\ProjectSubResourceController;
+use App\Http\Controllers\Times\TimeEntryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -62,6 +63,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('incoming-invoices/{incoming_invoice}', [IncomingInvoiceController::class, 'update'])->name('incoming-invoices.update');
     Route::post('incoming-invoices/{incoming_invoice}/pay', [IncomingInvoiceController::class, 'pay'])->name('incoming-invoices.pay');
     Route::patch('incoming-invoices/{incoming_invoice}/checked', [IncomingInvoiceController::class, 'toggleChecked'])->name('incoming-invoices.checked');
+
+    // Zeiterfassung (M8): Schnellerfassung je Projekt
+    Route::get('time-entries', [TimeEntryController::class, 'index'])->name('time-entries.index');
+    Route::post('time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
+    Route::delete('time-entries/{time_entry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 
     // Datei-Anhänge (polymorph, privat)
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');

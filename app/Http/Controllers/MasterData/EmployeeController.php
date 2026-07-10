@@ -5,7 +5,10 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MasterData\EmployeeRequest;
 use App\Models\Employee;
+use App\Models\OvertimeEntry;
+use App\Models\OvertimePayout;
 use App\Models\User;
+use App\Support\Overtime\OvertimeBalance;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +67,28 @@ class EmployeeController extends Controller
     {
         Gate::authorize('view', $employee);
 
+        // Überstunden sind Lohndaten — nur für admin/büro (M8).
+        $overtime = Gate::allows('viewAny', OvertimeEntry::class)
+            ? [
+                'entries' => $employee->overtimeEntries()->orderByDesc('year')->orderByDesc('month')->get()
+                    ->map(fn (OvertimeEntry $entry): array => [
+                        'id' => $entry->id,
+                        'year' => $entry->year,
+                        'month' => $entry->month,
+                        'hours' => (float) $entry->hours,
+                        'note' => $entry->note,
+                    ])->values(),
+                'payouts' => $employee->overtimePayouts()->orderByDesc('paid_on')->get()
+                    ->map(fn (OvertimePayout $payout): array => [
+                        'id' => $payout->id,
+                        'paid_on' => $payout->paid_on->toDateString(),
+                        'hours' => (float) $payout->hours,
+                        'amount' => (float) $payout->amount,
+                    ])->values(),
+                'balance' => app(OvertimeBalance::class)->forEmployee($employee),
+            ]
+            : null;
+
         return Inertia::render('employees/edit', [
             'employee' => [
                 'id' => $employee->id,
@@ -77,6 +102,7 @@ class EmployeeController extends Controller
             ],
             'users' => $this->userOptions(),
             'canWrite' => Gate::allows('update', $employee),
+            'overtime' => $overtime,
         ]);
     }
 

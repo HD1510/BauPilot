@@ -5,6 +5,7 @@ use App\Http\Controllers\MasterData\CustomerContactController;
 use App\Http\Controllers\MasterData\CustomerController;
 use App\Http\Controllers\MasterData\EmployeeController;
 use App\Http\Controllers\MasterData\MaterialController;
+use App\Http\Controllers\MasterData\OvertimeController;
 use App\Http\Controllers\MasterData\SupplierController;
 use App\Http\Controllers\MasterData\VehicleController;
 use App\Http\Controllers\MasterData\VehicleDateController;
@@ -43,6 +44,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::patch('employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::patch('employees/{employee}/archive', [EmployeeController::class, 'archive'])->name('employees.archive');
+
+    // Überstunden je Monat und Auszahlungen (M8; Lohndaten, admin/büro)
+    Route::post('employees/{employee}/overtime-entries', [OvertimeController::class, 'storeEntry'])->name('employees.overtime-entries.store');
+    Route::delete('employees/{employee}/overtime-entries/{entry}', [OvertimeController::class, 'destroyEntry'])->name('employees.overtime-entries.destroy');
+    Route::post('employees/{employee}/overtime-payouts', [OvertimeController::class, 'storePayout'])->name('employees.overtime-payouts.store');
+    Route::delete('employees/{employee}/overtime-payouts/{payout}', [OvertimeController::class, 'destroyPayout'])->name('employees.overtime-payouts.destroy');
 
     // Fahrzeuge mit Zusatzterminen
     Route::get('vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
