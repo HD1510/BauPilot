@@ -3,6 +3,7 @@
 use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Invoicing\IncomingInvoiceController;
 use App\Http\Controllers\Invoicing\InvoiceActionController;
+use App\Http\Controllers\Invoicing\InvoiceScanController;
 use App\Http\Controllers\Invoicing\OutgoingInvoiceController;
 use App\Http\Controllers\Projects\ProjectNoteController;
 use App\Http\Controllers\Projects\TaskController;
@@ -56,7 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('outgoing-invoices/{outgoing_invoice}/retentions/{retention}/release', [InvoiceActionController::class, 'releaseRetention'])->name('outgoing-invoices.retentions.release');
     Route::post('outgoing-invoices/{outgoing_invoice}/adjustments', [InvoiceActionController::class, 'storeAdjustment'])->name('outgoing-invoices.adjustments.store');
 
-    // Eingangsrechnungen
+    // Eingangsrechnungen (Scan: KI-Auslese von PDF/Foto samt Lieferanten-Vorschlag)
+    Route::post('incoming-invoices/scan', [InvoiceScanController::class, 'store'])->name('incoming-invoices.scan');
+    Route::post('incoming-invoices/scan/supplier', [InvoiceScanController::class, 'storeSupplier'])->name('incoming-invoices.scan.supplier');
     Route::get('incoming-invoices', [IncomingInvoiceController::class, 'index'])->name('incoming-invoices.index');
     Route::get('incoming-invoices/create', [IncomingInvoiceController::class, 'create'])->name('incoming-invoices.create');
     Route::post('incoming-invoices', [IncomingInvoiceController::class, 'store'])->name('incoming-invoices.store');

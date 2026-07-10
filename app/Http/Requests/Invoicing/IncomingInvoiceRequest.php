@@ -34,6 +34,7 @@ class IncomingInvoiceRequest extends MasterDataRequest
             'skonto_until' => ['nullable', 'date', 'required_with:skonto_amount'],
             'subject' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'scan_token' => ['nullable', 'uuid'],
         ];
     }
 
