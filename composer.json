@@ -11,13 +11,15 @@
     "require": {
         "php": "^8.3",
         "anthropic-ai/sdk": "^0.36.0",
+        "horstoeko/zugferd": "^1.0",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
-        "phpoffice/phpspreadsheet": "^5.8"
+        "phpoffice/phpspreadsheet": "^5.8",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",

@@ -24,12 +24,12 @@ export default function IncomingInvoicesCreate({
     suppliers,
     costTypes,
     projects,
-    scanEnabled,
+    scanImagesEnabled,
 }: {
     suppliers: SupplierOption[];
     costTypes: Option[];
     projects: ProjectOption[];
-    scanEnabled: boolean;
+    scanImagesEnabled: boolean;
 }) {
     const [supplierList, setSupplierList] = useState(suppliers);
     const [scan, setScan] = useState<ScanState | null>(null);
@@ -87,7 +87,10 @@ export default function IncomingInvoicesCreate({
                     title="Neue Eingangsrechnung"
                     description="Kostenart Pflicht; §19-Rechnungen ohne USt"
                 />
-                {scanEnabled && <InvoiceScanCard onApply={applyScan} />}
+                <InvoiceScanCard
+                    onApply={applyScan}
+                    imagesEnabled={scanImagesEnabled}
+                />
                 <IncomingInvoiceForm
                     key={scan?.key ?? 0}
                     action="/incoming-invoices"

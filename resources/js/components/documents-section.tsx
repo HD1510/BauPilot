@@ -1,6 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
-import { Camera, FileText, Trash2, Upload } from 'lucide-react';
+import { Camera, FileText, FolderDown, Trash2, Upload } from 'lucide-react';
 import { useRef } from 'react';
+import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { formatFileSize } from '@/lib/format';
+import { saveFileAs } from '@/lib/save-file';
 
 export type DocumentItem = {
     id: number;
@@ -22,6 +24,39 @@ export type DocumentItem = {
     size: number;
     is_image?: boolean;
 };
+
+/**
+ * Beleg vom Server holen und lokal ablegen — der Speicherort ist über
+ * den „Speichern unter"-Dialog frei wählbar (Fallback: Download-Ordner).
+ */
+async function saveDocumentLocally(document: DocumentItem): Promise<void> {
+    try {
+        const response = await fetch(`/documents/${document.id}/download`, {
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+            toast.error('Die Datei konnte nicht geladen werden.');
+
+            return;
+        }
+
+        const outcome = await saveFileAs(
+            await response.blob(),
+            document.original_name,
+        );
+
+        if (outcome === 'saved') {
+            toast.success(`Lokal gespeichert: ${document.original_name}`);
+        } else if (outcome === 'download') {
+            toast.info(
+                'Der Browser bietet keinen Speichern-unter-Dialog — die Datei liegt im Download-Ordner.',
+            );
+        }
+    } catch {
+        toast.error('Keine Verbindung — bitte erneut versuchen.');
+    }
+}
 
 const categories = [
     { value: 'invoice', label: 'Rechnung' },
@@ -123,6 +158,15 @@ export function DocumentsSection({
                             {formatFileSize(document.size)}
                         </div>
                     </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`${document.original_name} lokal speichern (Speicherort wählen)`}
+                        title="Lokal speichern (Speicherort wählen)"
+                        onClick={() => void saveDocumentLocally(document)}
+                    >
+                        <FolderDown className="size-4" />
+                    </Button>
                     {canWrite && (
                         <Button
                             variant="ghost"

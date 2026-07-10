@@ -70,7 +70,9 @@ class IncomingInvoiceController extends Controller
 
         return Inertia::render('incoming-invoices/create', [
             ...$this->formOptions(),
-            'scanEnabled' => $scanner->enabled(),
+            // PDFs liest die Scan-Leiter immer (E-Rechnung/Text);
+            // Fotos und gescannte PDFs brauchen die KI-Stufe.
+            'scanImagesEnabled' => $scanner->enabled(),
         ]);
     }
 

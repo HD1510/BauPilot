@@ -118,14 +118,16 @@ test('scan schlägt ähnliche lieferanten über die dubletten-erkennung vor', fu
         ->and($response->json('matches.0.similarity'))->toBeGreaterThanOrEqual(0.45);
 });
 
-test('ohne api-schlüssel antwortet der scan mit klarer meldung', function () {
+test('ohne api-schlüssel antwortet der scan bei unlesbarem pdf mit klarer meldung', function () {
     config(['services.anthropic.key' => null]);
     actingMember();
 
+    // Ein PDF ohne Textschicht (hier: gar kein echtes PDF) kann nur die
+    // KI-Stufe lesen — die Meldung erklärt das, statt still zu scheitern.
     $this->post('/incoming-invoices/scan', [
         'file' => UploadedFile::fake()->create('rechnung.pdf', 50, 'application/pdf'),
     ])->assertStatus(422)
-        ->assertJsonPath('message', 'KI-Erkennung ist nicht konfiguriert (ANTHROPIC_API_KEY fehlt).');
+        ->assertJsonPath('message', fn (string $message): bool => str_contains($message, 'keinen lesbaren Text'));
 });
 
 test('rolle site darf nicht scannen', function () {

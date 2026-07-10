@@ -17,6 +17,34 @@ class SupplierMatcher
     public function __construct(private DuplicateFinder $finder) {}
 
     /**
+     * Bestehenden Lieferanten direkt im Rechnungstext finden — sicherer
+     * als jede Namens-Schätzung: steht „Huber Transporte" im Text, ist
+     * der Treffer eindeutig. Der längste Name gewinnt (spezifischster).
+     */
+    public function findInText(string $text): ?Supplier
+    {
+        $normalizedText = ' '.NameNormalizer::normalize($text).' ';
+        $best = null;
+        $bestLength = 0;
+
+        foreach (Supplier::query()->where('active', true)->get() as $supplier) {
+            $name = $supplier->normalized_name;
+
+            // Zu kurze Namen träfen überall („bau") — mindestens 5 Zeichen.
+            if (strlen($name) < 5) {
+                continue;
+            }
+
+            if (str_contains($normalizedText, ' '.$name.' ') && strlen($name) > $bestLength) {
+                $best = $supplier;
+                $bestLength = strlen($name);
+            }
+        }
+
+        return $best;
+    }
+
+    /**
      * @return list<array{id: int, name: string, similarity: float, payment_target_days: int, default_cost_type_id: int|null, skonto_percent: string|null, skonto_days: int|null}>
      */
     public function match(?string $name): array

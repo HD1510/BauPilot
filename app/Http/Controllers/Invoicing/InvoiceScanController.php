@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Invoicing;
 use App\Http\Controllers\Controller;
 use App\Models\IncomingInvoice;
 use App\Models\Supplier;
-use App\Support\InvoiceScan\InvoiceScanner;
+use App\Support\InvoiceScan\InvoiceScanPipeline;
 use App\Support\InvoiceScan\ScannedInvoice;
 use App\Support\InvoiceScan\SupplierMatcher;
 use App\Support\Money\MoneyHelper;
@@ -20,17 +20,18 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * KI-Scan für Eingangsrechnungen: PDF/Foto hochladen, Claude liest
- * Lieferant, Konditionen und Rechnungskopf aus. Bestehende Lieferanten
- * werden vorgeschlagen (DuplicateFinder), sonst kann direkt ein neuer
- * mit den erkannten Konditionen angelegt werden. Die Datei wartet unter
- * einem scan_token und wird beim Speichern als Beleg angehängt.
+ * Rechnungsscan für Eingangsrechnungen: PDF/Foto hochladen, die
+ * Scan-Leiter (E-Rechnung → Textanalyse → KI) liest Lieferant,
+ * Konditionen und Rechnungskopf aus. Bestehende Lieferanten werden
+ * vorgeschlagen (DuplicateFinder), sonst kann direkt ein neuer mit den
+ * erkannten Konditionen angelegt werden. Die Datei wartet unter einem
+ * scan_token und wird beim Speichern als Beleg angehängt.
  */
 class InvoiceScanController extends Controller
 {
     public function store(
         Request $request,
-        InvoiceScanner $scanner,
+        InvoiceScanPipeline $pipeline,
         SupplierMatcher $matcher,
         CompanyContext $context,
     ): JsonResponse {
@@ -40,17 +41,11 @@ class InvoiceScanController extends Controller
             'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:20480'],
         ], [], ['file' => 'Rechnung']);
 
-        if (! $scanner->enabled()) {
-            return response()->json([
-                'message' => 'KI-Erkennung ist nicht konfiguriert (ANTHROPIC_API_KEY fehlt).',
-            ], 422);
-        }
-
         /** @var UploadedFile $file */
         $file = $request->file('file');
 
         try {
-            $scan = $scanner->scan($file);
+            ['invoice' => $scan, 'source' => $source] = $pipeline->run($file);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -59,6 +54,7 @@ class InvoiceScanController extends Controller
 
         return response()->json([
             'scan_token' => $token,
+            'source' => $source,
             'extraction' => $scan->toArray(),
             'matches' => $matcher->match($scan->supplierName),
             'supplier_proposal' => $this->supplierProposal($scan),
