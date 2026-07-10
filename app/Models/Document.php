@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $size
  * @property string $mime
  * @property string|null $client_uuid
+ * @property int|null $created_by
  */
 #[Fillable(['category', 'original_name', 'path', 'size', 'mime', 'client_uuid'])]
 class Document extends Model

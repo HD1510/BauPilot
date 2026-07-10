@@ -32,7 +32,16 @@ class DocumentPolicy
 
     public function delete(User $user, Document $document): bool
     {
-        return $this->view($user, $document)
-            && in_array($user->currentRole(), [CompanyRole::Admin, CompanyRole::Office], true);
+        if (! $this->view($user, $document)) {
+            return false;
+        }
+
+        // Eigene Uploads (z. B. ein verwackeltes Baustellenfoto) darf
+        // auch die Baustelle wieder entfernen (M7).
+        if ($document->created_by === $user->id) {
+            return true;
+        }
+
+        return in_array($user->currentRole(), [CompanyRole::Admin, CompanyRole::Office], true);
     }
 }

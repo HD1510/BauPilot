@@ -5,12 +5,14 @@ namespace App\Support\Deadlines;
 use App\Enums\IncomingPaymentStatus;
 use App\Enums\OfferStatus;
 use App\Enums\OutgoingPaymentStatus;
+use App\Enums\TaskKind;
 use App\Models\IncomingInvoice;
 use App\Models\Offer;
 use App\Models\OutgoingInvoice;
 use App\Models\Project;
 use App\Models\ProjectAppointment;
 use App\Models\Retention;
+use App\Models\Task;
 use App\Models\Vehicle;
 use App\Models\VehicleDate;
 use App\Support\Invoicing\InvoiceLedger;
@@ -21,8 +23,8 @@ use Illuminate\Support\Facades\Date;
 /**
  * Sammelt Fristen zur Laufzeit aus den Quelltabellen (Architekturblatt
  * Abschnitt 5) — eine Frist kann nie vom Datenstand abweichen. Quellen:
- * Zahlungsziele, Skonto, Rücklässe, Projekt- und Fahrzeugtermine,
- * Gewährleistung, Wiedervorlagen. (Aufgaben folgen in 1B.)
+ * Zahlungsziele, Skonto, Rücklässe, Aufgaben und Mängel, Projekt- und
+ * Fahrzeugtermine, Gewährleistung, Wiedervorlagen.
  */
 class DeadlineService
 {
@@ -43,6 +45,7 @@ class DeadlineService
         $until ??= $today->addDays(self::HORIZON_DAYS);
 
         $deadlines = collect([
+            ...$this->tasks($until),
             ...$this->projectAppointments($today, $until),
             ...$this->vehicleDates($today, $until),
             ...$this->warranties($today, $until),
@@ -179,6 +182,32 @@ class DeadlineService
                 $offer->customer?->name,
                 "/offers/{$offer->id}/edit",
                 financial: true,
+            ))
+            ->all();
+    }
+
+    /**
+     * Offene Aufgaben und Mängel mit Fälligkeit (M7) — Überfälliges
+     * eingeschlossen; „erledigen" heißt die Aufgabe abhaken.
+     *
+     * @return array<int, Deadline>
+     */
+    private function tasks(CarbonImmutable $until): array
+    {
+        return Task::query()
+            ->whereNull('done_at')
+            ->whereNotNull('due_on')
+            ->where('due_on', '<=', $until)
+            ->with('project:id,title')
+            ->get()
+            ->map(fn (Task $task): Deadline => new Deadline(
+                $task->kind === TaskKind::Defect ? DeadlineKind::Defect : DeadlineKind::Task,
+                $task->due_on,
+                $task->title,
+                $task->project?->title,
+                "/projects/{$task->project_id}",
+                financial: false,
+                assigneeUserId: $task->assignee_user_id,
             ))
             ->all();
     }

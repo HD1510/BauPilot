@@ -1,5 +1,6 @@
 import { router, useForm } from '@inertiajs/react';
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { Camera, FileText, Trash2, Upload } from 'lucide-react';
+import { useRef } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ export type DocumentItem = {
     original_name: string;
     category_label: string;
     size: number;
+    is_image?: boolean;
 };
 
 const categories = [
@@ -32,29 +34,78 @@ const categories = [
 
 /**
  * Belege-Bereich: private Anhänge mit Kategorie, Download nur über den
- * autorisierten Server-Endpunkt.
+ * autorisierten Server-Endpunkt. Mit photoGallery (Projekt-Hub, M7)
+ * erscheinen Bilder als Galerie samt Kamera-Aufnahme fürs Handy.
  */
 export function DocumentsSection({
     documentableType,
     documentableId,
     documents,
     canWrite,
+    canUpload,
     defaultCategory = 'other',
+    photoGallery = false,
 }: {
     documentableType: string;
     documentableId: number;
     documents: DocumentItem[];
     canWrite: boolean;
+    /** Hochladen darf ggf. auch, wer sonst nicht schreiben darf (Baustelle am Projekt). */
+    canUpload?: boolean;
     defaultCategory?: string;
+    photoGallery?: boolean;
 }) {
+    const uploadAllowed = canUpload ?? canWrite;
+    const photos = photoGallery
+        ? documents.filter((document) => document.is_image)
+        : [];
+    const files = photoGallery
+        ? documents.filter((document) => !document.is_image)
+        : documents;
+
     return (
         <div className="grid max-w-xl gap-3">
             <Heading
                 variant="small"
-                title="Dateien"
+                title={photoGallery ? 'Fotos & Dateien' : 'Dateien'}
                 description="Anhänge liegen privat im Dokumentenspeicher"
             />
-            {documents.map((document) => (
+            {photoGallery && photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {photos.map((photo) => (
+                        <figure key={photo.id} className="group relative">
+                            <a
+                                href={`/documents/${photo.id}/preview`}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                <img
+                                    src={`/documents/${photo.id}/preview`}
+                                    alt={photo.original_name}
+                                    loading="lazy"
+                                    className="aspect-square w-full rounded-lg border border-sidebar-border/70 object-cover dark:border-sidebar-border"
+                                />
+                            </a>
+                            {canWrite && (
+                                <button
+                                    type="button"
+                                    aria-label={`${photo.original_name} löschen`}
+                                    className="absolute top-1 right-1 hidden rounded-md bg-black/60 p-1 text-white group-hover:block"
+                                    onClick={() =>
+                                        router.delete(
+                                            `/documents/${photo.id}`,
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    <Trash2 className="size-3.5" />
+                                </button>
+                            )}
+                        </figure>
+                    ))}
+                </div>
+            )}
+            {files.map((document) => (
                 <div
                     key={document.id}
                     className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
@@ -93,11 +144,12 @@ export function DocumentsSection({
                     Noch keine Dateien.
                 </p>
             )}
-            {canWrite && (
+            {uploadAllowed && (
                 <UploadForm
                     documentableType={documentableType}
                     documentableId={documentableId}
                     defaultCategory={defaultCategory}
+                    withCamera={photoGallery}
                 />
             )}
         </div>
@@ -108,26 +160,48 @@ function UploadForm({
     documentableType,
     documentableId,
     defaultCategory,
+    withCamera,
 }: {
     documentableType: string;
     documentableId: number;
     defaultCategory: string;
+    withCamera: boolean;
 }) {
+    const cameraInput = useRef<HTMLInputElement>(null);
     const { data, setData, post, processing, errors, reset } = useForm<{
         documentable_type: string;
         documentable_id: number;
         category: string;
         file: File | null;
+        client_uuid: string | null;
     }>({
         documentable_type: documentableType,
         documentable_id: documentableId,
         category: defaultCategory,
         file: null,
+        client_uuid: null,
     });
+
+    // Kamera-Aufnahme (M7): Foto vom Handy landet in Sekunden am Projekt —
+    // ein Tipper, aufnehmen, fertig. client_uuid macht Wiederholungen
+    // (Funkloch, Doppel-Tipper) unschädlich.
+    const submitCameraShot = (file: File) => {
+        router.post(
+            '/documents',
+            {
+                documentable_type: documentableType,
+                documentable_id: documentableId,
+                category: 'photo',
+                file,
+                client_uuid: crypto.randomUUID(),
+            },
+            { preserveScroll: true, forceFormData: true },
+        );
+    };
 
     return (
         <form
-            className="flex items-end gap-3"
+            className="grid gap-3"
             onSubmit={(event) => {
                 event.preventDefault();
                 post('/documents', {
@@ -137,39 +211,78 @@ function UploadForm({
                 });
             }}
         >
-            <div className="grid flex-1 gap-2">
-                <Label htmlFor={`file-${documentableType}-${documentableId}`}>
-                    Datei hochladen (max. 25 MB)
-                </Label>
-                <Input
-                    id={`file-${documentableType}-${documentableId}`}
-                    type="file"
-                    onChange={(event) =>
-                        setData('file', event.target.files?.[0] ?? null)
-                    }
-                    required
-                />
-                <InputError message={errors.file ?? errors.category} />
+            <div className="flex items-end gap-3">
+                <div className="grid flex-1 gap-2">
+                    <Label
+                        htmlFor={`file-${documentableType}-${documentableId}`}
+                    >
+                        Datei hochladen (max. 25 MB)
+                    </Label>
+                    <Input
+                        id={`file-${documentableType}-${documentableId}`}
+                        type="file"
+                        onChange={(event) =>
+                            setData('file', event.target.files?.[0] ?? null)
+                        }
+                        required
+                    />
+                    <InputError message={errors.file ?? errors.category} />
+                </div>
+                <Select
+                    value={data.category}
+                    onValueChange={(value) => setData('category', value)}
+                >
+                    <SelectTrigger className="w-40" aria-label="Kategorie">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {categories.map((category) => (
+                            <SelectItem
+                                key={category.value}
+                                value={category.value}
+                            >
+                                {category.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Button type="submit" disabled={processing || !data.file}>
+                    <Upload className="size-4" />
+                    Hochladen
+                </Button>
             </div>
-            <Select
-                value={data.category}
-                onValueChange={(value) => setData('category', value)}
-            >
-                <SelectTrigger className="w-40" aria-label="Kategorie">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <Button type="submit" disabled={processing || !data.file}>
-                <Upload className="size-4" />
-                Hochladen
-            </Button>
+            {withCamera && (
+                <>
+                    <input
+                        ref={cameraInput}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        aria-hidden
+                        tabIndex={-1}
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+
+                            if (file) {
+                                submitCameraShot(file);
+                            }
+
+                            event.target.value = '';
+                        }}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-fit"
+                        disabled={processing}
+                        onClick={() => cameraInput.current?.click()}
+                    >
+                        <Camera className="size-4" />
+                        Foto aufnehmen
+                    </Button>
+                </>
+            )}
         </form>
     );
 }

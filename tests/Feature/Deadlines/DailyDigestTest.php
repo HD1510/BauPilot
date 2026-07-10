@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\NotificationLogEntry;
 use App\Models\NotificationSetting;
 use App\Models\OutgoingInvoice;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Support\Facades\Mail;
@@ -85,6 +86,29 @@ test('rolle baustelle bekommt keinen digest über rein finanzielle fristen', fun
     // Büro-Benutzer erhält den Digest, Baustelle nicht
     Mail::assertSent(DailyDigestMail::class, 1);
     Mail::assertNotSent(DailyDigestMail::class, fn (DailyDigestMail $mail) => $mail->hasTo($siteUser->email));
+});
+
+test('aufgaben mit zuständigem erinnern nur den zuständigen (M7)', function () {
+    Mail::fake();
+
+    $company = Company::factory()->create();
+    $assignee = User::factory()->create();
+    $other = User::factory()->create();
+    $company->users()->attach($assignee->id, ['role' => CompanyRole::Site->value]);
+    $company->users()->attach($other->id, ['role' => CompanyRole::Site->value]);
+
+    Task::factory()->create([
+        'company_id' => $company->id,
+        'title' => 'Gerüst abbauen',
+        'due_on' => now()->addDay()->toDateString(),
+        'assignee_user_id' => $assignee->id,
+    ]);
+
+    $this->artisan('baupilot:daily-digest')->assertSuccessful();
+
+    Mail::assertSent(DailyDigestMail::class, 1);
+    Mail::assertSent(DailyDigestMail::class, fn (DailyDigestMail $mail) => $mail->hasTo($assignee->email));
+    Mail::assertNotSent(DailyDigestMail::class, fn (DailyDigestMail $mail) => $mail->hasTo($other->email));
 });
 
 test('digest je firma getrennt: zwei firmen, zwei mails an denselben benutzer', function () {

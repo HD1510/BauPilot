@@ -3,6 +3,10 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { DocumentsSection  } from '@/components/documents-section';
 import type {DocumentItem} from '@/components/documents-section';
 import Heading from '@/components/heading';
+import { NotesSection } from '@/components/projects/notes-section';
+import type { NoteItem } from '@/components/projects/notes-section';
+import { TasksSection } from '@/components/projects/tasks-section';
+import type { TaskItem } from '@/components/projects/tasks-section';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -76,8 +80,12 @@ type Props = {
     openItems: OpenItemRow[] | null;
     incomingInvoices: IncomingRow[] | null;
     documents: DocumentItem[];
+    tasks: TaskItem[];
+    projectNotes: NoteItem[];
+    members: { id: number; name: string }[];
     suppliers: { id: number; name: string }[];
     canWrite: boolean;
+    canAttach: boolean;
     canViewFinancials: boolean;
 };
 
@@ -103,7 +111,11 @@ export default function ProjectsShow({
     openItems,
     incomingInvoices,
     documents,
+    tasks,
+    projectNotes,
+    members,
     canWrite,
+    canAttach,
     canViewFinancials,
     suppliers,
 }: Props) {
@@ -169,6 +181,15 @@ export default function ProjectsShow({
                     {appointments.length === 0 && <p className="text-sm text-muted-foreground">Keine Termine.</p>}
                 </div>
                 {canWrite && <AddAppointmentForm projectId={project.id} />}
+
+                <Separator />
+
+                {/* Aufgaben & Mängel (M7) */}
+                <TasksSection
+                    projectId={project.id}
+                    tasks={tasks}
+                    members={members}
+                />
 
                 <Separator />
 
@@ -292,8 +313,15 @@ export default function ProjectsShow({
                     documentableId={project.id}
                     documents={documents}
                     canWrite={canWrite}
+                    canUpload={canAttach}
                     defaultCategory="plan"
+                    photoGallery
                 />
+
+                <Separator />
+
+                {/* Notizen (M7) */}
+                <NotesSection projectId={project.id} notes={projectNotes} />
             </div>
         </>
     );

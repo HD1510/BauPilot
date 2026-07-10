@@ -17,6 +17,9 @@ final readonly class Deadline
         public ?string $subtitle,
         public string $url,
         public bool $financial,
+        // Aufgaben-Erinnerung an Zuständige (Abschnitt 7): ist ein
+        // Zuständiger gesetzt, geht die Frist im Digest nur an ihn.
+        public ?int $assigneeUserId = null,
     ) {}
 
     public function isOverdue(CarbonImmutable $today): bool

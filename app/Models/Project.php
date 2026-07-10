@@ -100,6 +100,18 @@ class Project extends Model implements HasDocuments
         return $this->hasMany(IncomingInvoice::class);
     }
 
+    /** @return HasMany<Task, $this> */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    /** @return HasMany<ProjectNote, $this> */
+    public function projectNotes(): HasMany
+    {
+        return $this->hasMany(ProjectNote::class);
+    }
+
     /** @return MorphMany<Document, $this> */
     public function documents(): MorphMany
     {

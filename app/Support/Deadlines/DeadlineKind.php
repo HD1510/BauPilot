@@ -12,6 +12,8 @@ enum DeadlineKind: string
     case Vehicle = 'vehicle';
     case Warranty = 'warranty';
     case FollowUp = 'follow_up';
+    case Task = 'task';
+    case Defect = 'defect';
 
     public function label(): string
     {
@@ -24,6 +26,8 @@ enum DeadlineKind: string
             self::Vehicle => 'Fahrzeugtermin',
             self::Warranty => 'Gewährleistungsende',
             self::FollowUp => 'Wiedervorlage',
+            self::Task => 'Aufgabe',
+            self::Defect => 'Mangel',
         };
     }
 }

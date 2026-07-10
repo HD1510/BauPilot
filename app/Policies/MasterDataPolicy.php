@@ -44,6 +44,15 @@ abstract class MasterDataPolicy
         return $this->canWrite($user);
     }
 
+    /**
+     * Datei anhängen (M7): standardmäßig wie schreiben — Projekte
+     * öffnen das für alle Mitglieder (Fotos von der Baustelle).
+     */
+    public function attach(User $user, Model $model): bool
+    {
+        return $this->canWrite($user);
+    }
+
     protected function canWrite(User $user): bool
     {
         return in_array($user->currentRole(), [CompanyRole::Admin, CompanyRole::Office], true);

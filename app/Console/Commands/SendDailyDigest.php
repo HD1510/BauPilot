@@ -85,6 +85,10 @@ class SendDailyDigest extends Command
 
             $items = $deadlines
                 ->upcoming($today->addDays(self::DIGEST_HORIZON_DAYS), $role->canViewFinancials())
+                // Aufgaben-Erinnerung an Zuständige (Abschnitt 7): Fristen
+                // mit Zuständigem erhält nur dieser; alles ohne Zuständigen
+                // geht wie bisher an alle.
+                ->filter(fn ($deadline): bool => $deadline->assigneeUserId === null || $deadline->assigneeUserId === $user->id)
                 ->map(fn ($deadline) => $deadline->toArray($today))
                 ->values();
 

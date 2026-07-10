@@ -6,13 +6,13 @@ use App\Enums\DocumentCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Contracts\HasDocuments;
 use App\Models\Document;
+use App\Support\Documents\DocumentUploader;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -27,7 +27,7 @@ class DocumentController extends Controller
 
     private const MAX_FILE_KB = 25 * 1024; // 25 MB (Architekturblatt 6)
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, DocumentUploader $uploader): RedirectResponse
     {
         $validated = $request->validate([
             'documentable_type' => ['required', Rule::in(self::ALLOWED_PARENTS)],
@@ -39,38 +39,22 @@ class DocumentController extends Controller
 
         $parent = $this->resolveParent($validated['documentable_type'], (int) $validated['documentable_id']);
 
-        Gate::authorize('update', $parent);
+        Gate::authorize('attach', $parent);
 
         // Idempotenz über client_uuid (v1.1): Wiederholung ist erledigt.
-        if (! empty($validated['client_uuid'])) {
-            $existing = Document::query()->where('client_uuid', $validated['client_uuid'])->first();
-
-            if ($existing !== null) {
-                return back()->with('success', 'Datei ist bereits hochgeladen.');
-            }
+        if ($uploader->findExisting($validated['client_uuid'] ?? null) !== null) {
+            return back()->with('success', 'Datei ist bereits hochgeladen.');
         }
 
         $file = $request->file('file');
-        $path = sprintf(
-            '%s/%d/%s/%d/%s-%s',
-            app()->environment(),
-            $parent->getAttribute('company_id'),
+
+        $uploader->upload(
+            $parent,
             $validated['documentable_type'],
-            $parent->getKey(),
-            Str::uuid(),
-            Str::limit(preg_replace('/[^\w.\-]+/', '_', $file->getClientOriginalName()) ?? 'datei', 100, ''),
+            $file,
+            DocumentCategory::from($validated['category']),
+            $validated['client_uuid'] ?? null,
         );
-
-        Storage::disk('documents')->putFileAs(dirname($path), $file, basename($path));
-
-        $parent->documents()->create([
-            'category' => $validated['category'],
-            'original_name' => $file->getClientOriginalName(),
-            'path' => $path,
-            'size' => $file->getSize(),
-            'mime' => $file->getMimeType() ?? 'application/octet-stream',
-            'client_uuid' => $validated['client_uuid'] ?? null,
-        ]);
 
         return back()->with('success', "Datei „{$file->getClientOriginalName()}“ hochgeladen.");
     }
@@ -89,6 +73,26 @@ class DocumentController extends Controller
         }
 
         return $disk->download($document->path, $document->original_name);
+    }
+
+    /**
+     * Inline-Anzeige für die Foto-Galerie (M7): gleiche Policy-Prüfung
+     * wie der Download, aber ohne Attachment-Disposition.
+     */
+    public function preview(Document $document): Response
+    {
+        Gate::authorize('view', $document);
+
+        $disk = Storage::disk('documents');
+
+        if (config('filesystems.disks.documents.driver') === 's3') {
+            return redirect()->away($disk->temporaryUrl($document->path, now()->addMinutes(15)));
+        }
+
+        return $disk->response($document->path, $document->original_name, [
+            'Content-Disposition' => 'inline',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
     public function destroy(Document $document): RedirectResponse

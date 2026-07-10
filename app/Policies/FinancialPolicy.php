@@ -38,6 +38,15 @@ abstract class FinancialPolicy
         return $this->canWrite($user);
     }
 
+    /**
+     * Datei anhängen (M7): bei Belegen wie schreiben — Finanzdaten
+     * bleiben admin/büro vorbehalten.
+     */
+    public function attach(User $user, Model $model): bool
+    {
+        return $this->canWrite($user);
+    }
+
     protected function canViewFinancials(User $user): bool
     {
         $role = $user->currentRole();

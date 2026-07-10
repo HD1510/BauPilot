@@ -12,6 +12,7 @@ import {
     HardHat,
     LayoutGrid,
     Package,
+    SquareCheckBig,
     Tags,
     Truck,
 } from 'lucide-react';
@@ -41,6 +42,11 @@ const mainNavItems: NavItem[] = [
         title: 'Fristen',
         href: '/deadlines',
         icon: CalendarClock,
+    },
+    {
+        title: 'Aufgaben',
+        href: '/tasks',
+        icon: SquareCheckBig,
     },
     {
         title: 'Firmen',

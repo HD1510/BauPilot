@@ -4,6 +4,8 @@ use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Invoicing\IncomingInvoiceController;
 use App\Http\Controllers\Invoicing\InvoiceActionController;
 use App\Http\Controllers\Invoicing\OutgoingInvoiceController;
+use App\Http\Controllers\Projects\ProjectNoteController;
+use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\OfferController;
 use App\Http\Controllers\Sales\ProjectController;
 use App\Http\Controllers\Sales\ProjectSubResourceController;
@@ -25,6 +27,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::patch('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+
+    // Aufgaben & Mängel und Notizen (M7)
+    Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::post('projects/{project}/tasks', [TaskController::class, 'store'])->name('projects.tasks.store');
+    Route::post('tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
+    Route::post('tasks/{task}/reopen', [TaskController::class, 'reopen'])->name('tasks.reopen');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('projects/{project}/notes', [ProjectNoteController::class, 'store'])->name('projects.notes.store');
+    Route::delete('notes/{note}', [ProjectNoteController::class, 'destroy'])->name('notes.destroy');
 
     Route::post('projects/{project}/appointments', [ProjectSubResourceController::class, 'storeAppointment'])->name('projects.appointments.store');
     Route::delete('projects/{project}/appointments/{appointment}', [ProjectSubResourceController::class, 'destroyAppointment'])->name('projects.appointments.destroy');
@@ -55,5 +66,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Datei-Anhänge (polymorph, privat)
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
     Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 });

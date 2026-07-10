@@ -87,6 +87,37 @@ test('rolle baustelle sieht projektdateien, aber keine rechnungsanhänge', funct
     $this->get("/documents/{$invoiceDoc->id}/download")->assertForbidden();
 });
 
+test('die baustelle hängt fotos ans projekt — an belege weiterhin nicht (M7)', function () {
+    [, $company] = actingMember(CompanyRole::Site);
+    app(CompanyContext::class)->set($company);
+    $project = Project::factory()->create(['company_id' => $company->id]);
+    $invoice = OutgoingInvoice::factory()->create(['company_id' => $company->id]);
+    app(CompanyContext::class)->clear();
+
+    $this->post('/documents', [
+        'documentable_type' => 'project',
+        'documentable_id' => $project->id,
+        'category' => 'photo',
+        'file' => UploadedFile::fake()->image('baustelle.jpg'),
+    ])->assertSessionHasNoErrors();
+
+    $document = Document::withoutGlobalScopes()->firstOrFail();
+    expect($document->documentable_type)->toBe('project');
+
+    // Eigenes Foto darf die Baustelle auch wieder löschen.
+    app(CompanyContext::class)->clear();
+    $this->delete("/documents/{$document->id}")->assertSessionHasNoErrors();
+    expect(Document::withoutGlobalScopes()->count())->toBe(0);
+
+    app(CompanyContext::class)->clear();
+    $this->post('/documents', [
+        'documentable_type' => 'outgoing_invoice',
+        'documentable_id' => $invoice->id,
+        'category' => 'invoice',
+        'file' => UploadedFile::fake()->create('rechnung.pdf', 10, 'application/pdf'),
+    ])->assertForbidden();
+});
+
 test('dokumente fremder firmen sind unerreichbar', function () {
     $foreignDoc = Document::factory()->create(); // eigene fremde Firma
 

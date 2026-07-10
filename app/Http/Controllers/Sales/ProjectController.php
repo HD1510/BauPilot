@@ -10,7 +10,9 @@ use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ExternalOffer;
 use App\Models\Project;
+use App\Models\ProjectNote;
 use App\Models\Supplier;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\Invoicing\OpenItemsQuery;
 use App\Support\Tenancy\CompanyContext;
@@ -158,9 +160,31 @@ class ProjectController extends Controller
                     'category' => $document->category->value,
                     'category_label' => $document->category->label(),
                     'size' => $document->size,
+                    'is_image' => str_starts_with($document->mime, 'image/'),
                 ]),
+            'tasks' => $project->tasks()->with('assignee:id,name')
+                ->orderByRaw('done_at IS NOT NULL, due_on ASC NULLS LAST, id DESC')->get()
+                ->map(fn (Task $task): array => [
+                    'id' => $task->id,
+                    'kind' => $task->kind->value,
+                    'kind_label' => $task->kind->label(),
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'due_on' => $task->due_on?->toDateString(),
+                    'assignee' => $task->assignee?->name,
+                    'done_at' => $task->done_at?->toIso8601String(),
+                ]),
+            'projectNotes' => $project->projectNotes()->with('author:id,name')->orderByDesc('created_at')->get()
+                ->map(fn (ProjectNote $note): array => [
+                    'id' => $note->id,
+                    'body' => $note->body,
+                    'author' => $note->author?->name,
+                    'created_at' => $note->created_at?->toIso8601String(),
+                ]),
+            'members' => $this->userOptions(),
             'suppliers' => $financials ? $this->supplierOptions() : [],
             'canWrite' => Gate::allows('update', $project),
+            'canAttach' => Gate::allows('attach', $project),
             'canViewFinancials' => $financials,
         ]);
     }
