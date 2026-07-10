@@ -9,6 +9,7 @@ use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\OfferController;
 use App\Http\Controllers\Sales\ProjectController;
 use App\Http\Controllers\Sales\ProjectSubResourceController;
+use App\Http\Controllers\SiteReports\SiteReportController;
 use App\Http\Controllers\Times\TimeEntryController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('time-entries', [TimeEntryController::class, 'index'])->name('time-entries.index');
     Route::post('time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
     Route::delete('time-entries/{time_entry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
+
+    // Regieberichte (M9): Nummernkreis, Unterschrift, Sperre
+    Route::get('site-reports', [SiteReportController::class, 'index'])->name('site-reports.index');
+    Route::get('site-reports/create', [SiteReportController::class, 'create'])->name('site-reports.create');
+    Route::get('site-reports/{site_report}', [SiteReportController::class, 'show'])->name('site-reports.show');
+    Route::get('site-reports/{site_report}/signature', [SiteReportController::class, 'signature'])->name('site-reports.signature');
+    Route::post('site-reports/{site_report}/sign', [SiteReportController::class, 'sign'])->name('site-reports.sign');
+    Route::delete('site-reports/{site_report}', [SiteReportController::class, 'destroy'])->name('site-reports.destroy');
 
     // Datei-Anhänge (polymorph, privat)
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');

@@ -1,7 +1,9 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import { initOfflineQueue } from '@/lib/offline-queue';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -38,6 +40,22 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// Offline-Warteschlange (M9): gepufferte Baustellen-Erfassungen werden
+// bei Verbindung nachsynchronisiert (Architekturblatt Abschnitt 9).
+initOfflineQueue((summary) => {
+    if (summary.sent > 0) {
+        toast.success(
+            summary.sent === 1
+                ? 'Offline-Erfassung nachsynchronisiert.'
+                : `${summary.sent} Offline-Erfassungen nachsynchronisiert.`,
+        );
+    }
+
+    summary.dropped.forEach((label) =>
+        toast.error(`„${label}“ wurde vom Server abgelehnt und verworfen.`),
+    );
+});
 
 // PWA: Service Worker macht BauPilot installierbar (eigenes Fenster am
 // Desktop) und zeigt ohne Netz eine Offline-Seite. Im Vite-Dev-Server

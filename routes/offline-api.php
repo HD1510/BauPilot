@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\ProjectNoteController;
+use App\Http\Controllers\Api\SiteReportController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TimeEntryController;
 use App\Http\Middleware\SetCompanyFromRequest;
@@ -17,4 +18,5 @@ Route::middleware(['auth', SetCompanyFromRequest::class])->prefix('api')->name('
     Route::post('project-notes', [ProjectNoteController::class, 'store'])->name('project-notes.store');
     Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::post('time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
+    Route::post('site-reports', [SiteReportController::class, 'store'])->name('site-reports.store');
 });

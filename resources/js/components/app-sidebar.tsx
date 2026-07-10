@@ -8,6 +8,7 @@ import {
     Contact,
     FileInput,
     FileOutput,
+    FileSignature,
     FileText,
     FolderKanban,
     HardHat,
@@ -73,6 +74,7 @@ const masterDataNavItems: NavItem[] = [
 const projectNavItems: NavItem[] = [
     { title: 'Angebote', href: '/offers', icon: FileText },
     { title: 'Projekte', href: '/projects', icon: FolderKanban },
+    { title: 'Regieberichte', href: '/site-reports', icon: FileSignature },
 ];
 
 const invoiceNavItems: NavItem[] = [

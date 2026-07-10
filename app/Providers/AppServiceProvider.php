@@ -8,6 +8,7 @@ use App\Models\IncomingInvoice;
 use App\Models\Offer;
 use App\Models\OutgoingInvoice;
 use App\Models\Project;
+use App\Models\SiteReport;
 use App\Models\User;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
@@ -54,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
             'external_offer' => ExternalOffer::class,
             'outgoing_invoice' => OutgoingInvoice::class,
             'incoming_invoice' => IncomingInvoice::class,
+            'site_report' => SiteReport::class,
         ]);
     }
 
