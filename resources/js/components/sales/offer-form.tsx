@@ -35,13 +35,15 @@ export function OfferForm({
     customers,
     statuses,
     submitLabel,
+    scanToken,
 }: {
     action: string;
     method: 'post' | 'patch';
-    offer?: OfferFormValues;
+    offer?: Partial<OfferFormValues>;
     customers: Option[];
     statuses: StatusOption[];
     submitLabel: string;
+    scanToken?: string;
 }) {
     const { data, setData, post, patch, processing, errors, transform } =
         useForm({
@@ -55,6 +57,7 @@ export function OfferForm({
             offer_amount_net: offer?.offer_amount_net ?? '',
             notes: offer?.notes ?? '',
             lock_version: offer?.lock_version ?? 0,
+            scan_token: scanToken ?? '',
         });
 
     return (
@@ -67,6 +70,7 @@ export function OfferForm({
                     customer_id: values.customer_id
                         ? Number(values.customer_id)
                         : null,
+                    scan_token: values.scan_token || null,
                 }));
                 (method === 'post' ? post : patch)(action, {
                     preserveScroll: true,
@@ -140,9 +144,7 @@ export function OfferForm({
                     <Textarea
                         id="description"
                         value={data.description}
-                        onChange={(e) =>
-                            setData('description', e.target.value)
-                        }
+                        onChange={(e) => setData('description', e.target.value)}
                     />
                     <InputError message={errors.description} />
                 </div>

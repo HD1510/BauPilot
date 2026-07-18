@@ -10,12 +10,14 @@ use Throwable;
 /**
  * Stufe 1 der Scan-Leiter: E-Rechnungen (ZUGFeRD/Factur-X/XRechnung im
  * PDF eingebettet) tragen alle Daten als XML — die Auslese ist exakt,
- * kostenlos und braucht keine KI. PDFs ohne eingebettetes XML liefern
- * null und fallen auf die nächste Stufe.
+ * kostenlos und braucht keine KI. Je nach Belegart ist der gesuchte
+ * Partner der Verkäufer (Eingangsrechnung) oder der Käufer (eigene
+ * Ausgangsrechnung/Angebot). PDFs ohne eingebettetes XML liefern null
+ * und fallen auf die nächste Stufe.
  */
 class ERechnungReader
 {
-    public function read(string $pdfContent): ?ScannedInvoice
+    public function read(string $pdfContent, ScanDocumentKind $kind = ScanDocumentKind::IncomingInvoice): ?ScannedInvoice
     {
         try {
             $reader = ZugferdDocumentPdfReader::readAndGuessFromContent($pdfContent);
@@ -24,7 +26,7 @@ class ERechnungReader
         }
 
         try {
-            return $this->extract($reader);
+            return $this->extract($reader, $kind);
         } catch (Throwable $e) {
             report($e);
 
@@ -32,18 +34,22 @@ class ERechnungReader
         }
     }
 
-    private function extract(ZugferdDocumentReader $reader): ScannedInvoice
+    private function extract(ZugferdDocumentReader $reader, ScanDocumentKind $kind): ScannedInvoice
     {
         $documentNo = $typeCode = $currency = $taxCurrency = $documentName = $language = null;
         $documentDate = $period = null;
         $reader->getDocumentInformation($documentNo, $typeCode, $documentDate, $currency, $taxCurrency, $documentName, $language, $period);
 
-        $sellerName = $sellerDescription = null;
-        $sellerIds = null;
-        $reader->getDocumentSeller($sellerName, $sellerIds, $sellerDescription);
+        $partnerName = $partnerDescription = null;
+        $partnerIds = $taxRegistrations = null;
 
-        $taxRegistrations = null;
-        $reader->getDocumentSellerTaxRegistration($taxRegistrations);
+        if ($kind->partnerIsSeller()) {
+            $reader->getDocumentSeller($partnerName, $partnerIds, $partnerDescription);
+            $reader->getDocumentSellerTaxRegistration($taxRegistrations);
+        } else {
+            $reader->getDocumentBuyer($partnerName, $partnerIds, $partnerDescription);
+            $reader->getDocumentBuyerTaxRegistration($taxRegistrations);
+        }
 
         $grandTotal = $duePayable = $lineTotal = $chargeTotal = $allowanceTotal = $taxBasisTotal = $taxTotal = $rounding = $prepaid = null;
         $reader->getDocumentSummation($grandTotal, $duePayable, $lineTotal, $chargeTotal, $allowanceTotal, $taxBasisTotal, $taxTotal, $rounding, $prepaid);
@@ -64,24 +70,26 @@ class ERechnungReader
 
         $iban = null;
 
-        if ($reader->firstGetDocumentPaymentMeans()) {
+        // Die Empfänger-IBAN auf dem Beleg ist die des Verkäufers — nur
+        // bei Eingangsrechnungen ist das der gesuchte Partner.
+        if ($kind->partnerIsSeller() && $reader->firstGetDocumentPaymentMeans()) {
             $meansType = $information = $cardType = $cardId = $cardHolder = $buyerIban = $payeeIban = $payeeAccountName = $payeePropId = $payeeBic = null;
             $reader->getDocumentPaymentMeans($meansType, $information, $cardType, $cardId, $cardHolder, $buyerIban, $payeeIban, $payeeAccountName, $payeePropId, $payeeBic);
             $iban = $payeeIban !== null && $payeeIban !== '' ? $payeeIban : null;
         }
 
-        $invoiceDate = $documentDate !== null ? CarbonImmutable::instance($documentDate)->toDateString() : null;
-        [$paymentTargetDays, $skontoPercent, $skontoDays] = $this->paymentTerms($reader, $invoiceDate);
+        $docDate = $documentDate !== null ? CarbonImmutable::instance($documentDate)->toDateString() : null;
+        [$paymentTargetDays, $skontoPercent, $skontoDays] = $this->paymentTerms($reader, $docDate);
 
         return new ScannedInvoice(
-            supplierName: $sellerName !== null && trim($sellerName) !== '' ? trim($sellerName) : null,
-            supplierUid: $this->vatIdFrom($taxRegistrations),
-            supplierIban: $iban,
+            partnerName: $partnerName !== null && trim($partnerName) !== '' ? trim($partnerName) : null,
+            partnerUid: $this->vatIdFrom($taxRegistrations),
+            partnerIban: $iban,
             paymentTargetDays: $paymentTargetDays,
             skontoPercent: $skontoPercent,
             skontoDays: $skontoDays,
-            supplierInvoiceNo: $documentNo,
-            invoiceDate: $invoiceDate,
+            docNumber: $documentNo,
+            docDate: $docDate,
             net: $taxBasisTotal,
             vatRate: $vatRate,
             gross: $grandTotal,

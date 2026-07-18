@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Sales;
 
+use App\Enums\DocumentCategory;
 use App\Enums\OfferStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\OfferRequest;
 use App\Models\Customer;
 use App\Models\Offer;
 use App\Models\Project;
+use App\Support\InvoiceScan\InvoiceScanner;
+use App\Support\InvoiceScan\ScannedFileAttacher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,19 +57,26 @@ class OfferController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(InvoiceScanner $scanner): Response
     {
         Gate::authorize('create', Offer::class);
 
         return Inertia::render('offers/create', [
             'customers' => $this->customerOptions(),
             'statuses' => $this->statusOptions(),
+            'scanImagesEnabled' => $scanner->enabled(),
         ]);
     }
 
-    public function store(OfferRequest $request): RedirectResponse
+    public function store(OfferRequest $request, ScannedFileAttacher $attacher): RedirectResponse
     {
-        $offer = Offer::create($request->validated());
+        $validated = $request->validated();
+        $token = $validated['scan_token'] ?? null;
+        unset($validated['scan_token']);
+
+        $offer = Offer::create($validated);
+
+        $attacher->attach($offer, 'offer', is_string($token) ? $token : null, DocumentCategory::Offer);
 
         return redirect()->route('offers.edit', $offer)
             ->with('success', 'Angebot wurde angelegt.');
@@ -93,6 +103,14 @@ class OfferController extends Controller
             ],
             'customers' => $this->customerOptions(),
             'statuses' => $this->statusOptions(),
+            'documents' => $offer->documents()->orderByDesc('created_at')->get()
+                ->map(fn ($document): array => [
+                    'id' => $document->id,
+                    'original_name' => $document->original_name,
+                    'category_label' => $document->category->label(),
+                    'size' => $document->size,
+                ]),
+            'canWrite' => Gate::allows('update', $offer),
         ]);
     }
 
@@ -104,7 +122,10 @@ class OfferController extends Controller
             ]);
         }
 
-        $offer->update($request->validated());
+        $validated = $request->validated();
+        unset($validated['scan_token']);
+
+        $offer->update($validated);
 
         return back()->with('success', 'Änderungen gespeichert.');
     }

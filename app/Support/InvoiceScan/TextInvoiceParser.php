@@ -2,32 +2,41 @@
 
 namespace App\Support\InvoiceScan;
 
+use App\Support\Duplicates\NameNormalizer;
 use Carbon\CarbonImmutable;
 use Throwable;
 
 /**
- * Deterministische Auslese von Rechnungstext (Stufe 2 der Scan-Leiter):
+ * Deterministische Auslese von Belegtext (Stufe 2 der Scan-Leiter):
  * feste Muster für UID, IBAN, Nummer, Datum, Beträge, Zahlungsziel,
  * Skonto und Reverse Charge — ganz ohne KI und ohne externe Dienste.
- * Was kein Muster trifft, bleibt null; bestätigt wird ohnehin von Hand.
+ * Die Belegart bestimmt den gesuchten Partner: bei Eingangsrechnungen
+ * der Aussteller, bei eigenen Belegen der Empfänger. Was kein Muster
+ * trifft, bleibt null; bestätigt wird ohnehin von Hand.
  */
 class TextInvoiceParser
 {
-    public static function parse(string $text, ?string $knownSupplierName = null, ?string $ownVatId = null): ScannedInvoice
-    {
-        $invoiceDate = self::invoiceDate($text);
+    public static function parse(
+        string $text,
+        ScanDocumentKind $kind = ScanDocumentKind::IncomingInvoice,
+        ?string $knownPartnerName = null,
+        ?string $ownVatId = null,
+        ?string $ownCompanyName = null,
+    ): ScannedInvoice {
+        $docDate = self::docDate($text);
         $skonto = self::skonto($text);
 
         return new ScannedInvoice(
-            supplierName: $knownSupplierName ?? self::supplierNameHeuristic($text),
-            supplierUid: self::vatId($text, $ownVatId),
-            supplierIban: self::iban($text),
-            paymentTargetDays: self::paymentTargetDays($text, $invoiceDate),
+            partnerName: $knownPartnerName ?? self::partnerNameHeuristic($text, $kind, $ownCompanyName),
+            partnerUid: self::vatId($text, $ownVatId),
+            // Auf eigenen Belegen steht die eigene IBAN — dort nicht raten.
+            partnerIban: $kind->partnerIsSeller() ? self::iban($text) : null,
+            paymentTargetDays: self::paymentTargetDays($text, $docDate),
             skontoPercent: $skonto['percent'],
             skontoDays: $skonto['days'],
-            supplierInvoiceNo: self::invoiceNumber($text),
-            invoiceDate: $invoiceDate,
-            net: self::amount($text, 'Netto(?:betrag|summe)?|Zwischensumme'),
+            docNumber: self::docNumber($text, $kind),
+            docDate: $docDate,
+            net: self::amount($text, 'Netto(?:betrag|summe)?|Zwischensumme|(?:Angebots|Auftrags)summe(?:\s+netto)?'),
             vatRate: self::vatRate($text),
             gross: self::amount($text, 'Gesamtbetrag|Rechnungsbetrag|Brutto(?:betrag)?|Endbetrag|Gesamt|zu\s+zahlen(?:der\s+Betrag)?'),
             reverseCharge: self::reverseCharge($text),
@@ -104,7 +113,7 @@ class TextInvoiceParser
         foreach ($m[1] as $candidate) {
             $normalized = strtoupper((string) preg_replace('/\s+/', '', $candidate));
 
-            // Die eigene UID steht als Empfänger auf der Rechnung — überspringen.
+            // Die eigene UID steht auf jedem Beleg — überspringen.
             if ($own === null || $normalized !== $own) {
                 return $normalized;
             }
@@ -126,12 +135,17 @@ class TextInvoiceParser
         return null;
     }
 
-    private static function invoiceNumber(string $text): ?string
+    private static function docNumber(string $text, ScanDocumentKind $kind): ?string
     {
-        $patterns = [
-            '/Rechnungs?\s?(?:-\s?)?(?:Nr|Nummer)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
-            '/(?:Beleg|Faktura|Rg)\.?\s?(?:-\s?)?Nr\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
-        ];
+        $patterns = $kind === ScanDocumentKind::Offer
+            ? [
+                '/Angebots?\s?(?:-\s?)?(?:Nr|Nummer)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
+                '/Angebot\s+(?:Nr\.?\s*)?([A-Za-z0-9][A-Za-z0-9\/\-._]{1,29})/iu',
+            ]
+            : [
+                '/Rechnungs?\s?(?:-\s?)?(?:Nr|Nummer)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
+                '/(?:Beleg|Faktura|Rg)\.?\s?(?:-\s?)?Nr\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
+            ];
 
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $text, $m) === 1) {
@@ -142,10 +156,10 @@ class TextInvoiceParser
         return null;
     }
 
-    private static function invoiceDate(string $text): ?string
+    private static function docDate(string $text): ?string
     {
         $patterns = [
-            '/Rechnungsdatum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
+            '/(?:Rechnungs|Angebots)datum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
             '/\bDatum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
         ];
 
@@ -199,18 +213,29 @@ class TextInvoiceParser
     }
 
     /**
-     * Kein bekannter Lieferant im Text: die ersten Zeilen (Briefkopf) nach
-     * einer Firma mit Rechtsform absuchen — nur ein Vorschlag, kein Fakt.
+     * Kein bekannter Partner im Text: die ersten Zeilen nach einer Firma
+     * mit Rechtsform absuchen — nur ein Vorschlag, kein Fakt. Auf
+     * eigenen Belegen steht der eigene Briefkopf oben; Zeilen mit dem
+     * eigenen Firmennamen werden übersprungen.
      */
-    private static function supplierNameHeuristic(string $text): ?string
+    private static function partnerNameHeuristic(string $text, ScanDocumentKind $kind, ?string $ownCompanyName): ?string
     {
         $lines = array_values(array_filter(array_map('trim', explode("\n", $text)), fn (string $line): bool => $line !== ''));
+        $ownNormalized = $ownCompanyName !== null ? NameNormalizer::normalize($ownCompanyName) : null;
 
-        foreach (array_slice($lines, 0, 12) as $line) {
+        foreach (array_slice($lines, 0, 15) as $line) {
+            if ($ownNormalized !== null && $ownNormalized !== '' && str_contains(NameNormalizer::normalize($line), $ownNormalized)) {
+                continue;
+            }
+
             if (strlen($line) <= 80 && preg_match('/^(.{2,60}?(?:GmbH\s?&\s?Co\.?\s?KG|Ges\.?m\.?b\.?H\.?|GmbH|e\.\s?U\.|AG|KG|OG))(?=\s|$|[,;:])/u', $line, $m) === 1) {
                 return trim($m[1]);
             }
         }
+
+        // Beim Empfänger-Fall keine weitere Raterei — Privatkunden haben
+        // keine Rechtsform, das entscheidet besser ein Mensch.
+        unset($kind);
 
         return null;
     }

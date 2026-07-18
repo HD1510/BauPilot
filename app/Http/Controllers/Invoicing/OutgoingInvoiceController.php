@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Invoicing;
 
+use App\Enums\DocumentCategory;
 use App\Enums\InvoiceDocType;
 use App\Enums\ZeroRateReason;
 use App\Http\Controllers\Controller;
@@ -9,6 +10,8 @@ use App\Http\Requests\Invoicing\OutgoingInvoiceRequest;
 use App\Models\Customer;
 use App\Models\OutgoingInvoice;
 use App\Models\Project;
+use App\Support\InvoiceScan\InvoiceScanner;
+use App\Support\InvoiceScan\ScannedFileAttacher;
 use App\Support\Invoicing\InvoiceLedger;
 use App\Support\Invoicing\OpenItemsQuery;
 use App\Support\Money\MoneyHelper;
@@ -52,11 +55,13 @@ class OutgoingInvoiceController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request, InvoiceScanner $scanner): Response
     {
         Gate::authorize('create', OutgoingInvoice::class);
 
         return Inertia::render('outgoing-invoices/create', [
+            'scanImagesEnabled' => $scanner->enabled(),
+            'preselectedProjectId' => $request->integer('project') ?: null,
             'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'payment_target_days']),
             'projects' => Project::query()->orderBy('title')->get(['id', 'title', 'customer_id']),
             'partialInvoices' => OutgoingInvoice::query()
@@ -71,7 +76,7 @@ class OutgoingInvoiceController extends Controller
         ]);
     }
 
-    public function store(OutgoingInvoiceRequest $request, InvoiceLedger $ledger): RedirectResponse
+    public function store(OutgoingInvoiceRequest $request, ScannedFileAttacher $attacher): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -110,6 +115,9 @@ class OutgoingInvoiceController extends Controller
 
             return $invoice;
         });
+
+        $token = $validated['scan_token'] ?? null;
+        $attacher->attach($invoice, 'outgoing_invoice', is_string($token) ? $token : null, DocumentCategory::Invoice);
 
         return redirect()->route('outgoing-invoices.show', $invoice)
             ->with('success', "Rechnung {$invoice->number} wurde angelegt.");

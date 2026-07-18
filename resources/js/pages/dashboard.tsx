@@ -1,20 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
 import { AlertTriangle, CalendarClock, FolderKanban } from 'lucide-react';
+import { DeadlineListRow } from '@/components/deadlines/deadline-list-row';
+import type { DeadlineRow } from '@/components/deadlines/deadline-list-row';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatEUR } from '@/lib/format';
 import { dashboard } from '@/routes';
-
-type DeadlineRow = {
-    kind: string;
-    kind_label: string;
-    due_on: string;
-    title: string;
-    subtitle: string | null;
-    url: string;
-    overdue: boolean;
-};
 
 type OverdueInvoice = {
     id: number;
@@ -30,6 +22,7 @@ type Props = {
     canViewFinancials?: boolean;
     activeProjects?: number;
     deadlines?: DeadlineRow[];
+    appointments?: DeadlineRow[];
     overdueDeadlines?: number;
     openItems?: { due_now: number; retained_open: number; count: number };
     overdueInvoices?: OverdueInvoice[];
@@ -43,6 +36,7 @@ export default function Dashboard({
     canViewFinancials = false,
     activeProjects = 0,
     deadlines = [],
+    appointments = [],
     overdueDeadlines = 0,
     openItems,
     overdueInvoices = [],
@@ -129,42 +123,52 @@ export default function Dashboard({
                     </section>
                 )}
 
-                {canViewFinancials && numberGaps && numberGaps.gaps.length > 0 && (
-                    <section className="max-w-3xl rounded-lg border border-amber-500/50 bg-amber-50 p-4 text-sm dark:bg-amber-950/30">
-                        <div className="flex items-center gap-2 font-medium">
-                            <AlertTriangle className="size-4" />
-                            Lücken im Rechnungsnummernkreis (GJ ab {formatDate(numberGaps.fiscal_year_start)})
-                        </div>
-                        <p className="mt-1 text-muted-foreground">
-                            Fehlende Nummern: {numberGaps.gaps.join(', ')} — geprüft wurden {numberGaps.checked} Belege.
+                {canViewFinancials &&
+                    numberGaps &&
+                    numberGaps.gaps.length > 0 && (
+                        <section className="max-w-3xl rounded-lg border border-amber-500/50 bg-amber-50 p-4 text-sm dark:bg-amber-950/30">
+                            <div className="flex items-center gap-2 font-medium">
+                                <AlertTriangle className="size-4" />
+                                Lücken im Rechnungsnummernkreis (GJ ab{' '}
+                                {formatDate(numberGaps.fiscal_year_start)})
+                            </div>
+                            <p className="mt-1 text-muted-foreground">
+                                Fehlende Nummern: {numberGaps.gaps.join(', ')} —
+                                geprüft wurden {numberGaps.checked} Belege.
+                            </p>
+                        </section>
+                    )}
+
+                <section className="grid max-w-3xl gap-2">
+                    <Heading
+                        variant="small"
+                        title="Nächste Termine"
+                        description="Projekttermine der nächsten 8 Wochen"
+                    />
+                    {appointments.map((appointment, index) => (
+                        <DeadlineListRow
+                            key={`${appointment.kind}-${index}`}
+                            row={appointment}
+                        />
+                    ))}
+                    {appointments.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            Keine Termine in den nächsten 8 Wochen.
                         </p>
-                    </section>
-                )}
+                    )}
+                </section>
 
                 <section className="grid max-w-3xl gap-2">
                     <Heading
                         variant="small"
                         title="Nächste Fristen"
-                        description="Berechnet aus den Belegen und Terminen — nie gespeichert"
+                        description="Berechnet aus den Belegen — nie gespeichert"
                     />
                     {deadlines.map((deadline, index) => (
-                        <Link
+                        <DeadlineListRow
                             key={`${deadline.kind}-${index}`}
-                            href={deadline.url}
-                            className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
-                        >
-                            <Badge variant={deadline.overdue ? 'destructive' : 'outline'}>
-                                {deadline.overdue ? 'überfällig' : formatDate(deadline.due_on)}
-                            </Badge>
-                            <span className="font-medium">{deadline.title}</span>
-                            <span className="text-muted-foreground">
-                                {deadline.subtitle}
-                            </span>
-                            <span className="flex-1" />
-                            <span className="text-xs text-muted-foreground">
-                                {deadline.kind_label}
-                            </span>
-                        </Link>
+                            row={deadline}
+                        />
                     ))}
                     {deadlines.length === 0 && (
                         <p className="text-sm text-muted-foreground">
@@ -173,18 +177,25 @@ export default function Dashboard({
                     )}
                 </section>
 
-                {canViewFinancials && (uncheckedIncoming > 0 || openIncoming > 0) && (
-                    <p className="text-sm text-muted-foreground">
-                        Eingangsrechnungen:{' '}
-                        <Link href="/incoming-invoices?open=1" className="underline underline-offset-2">
-                            {openIncoming} unbezahlt
-                        </Link>
-                        {' · '}
-                        <Link href="/incoming-invoices?unchecked=1" className="underline underline-offset-2">
-                            {uncheckedIncoming} ungeprüft
-                        </Link>
-                    </p>
-                )}
+                {canViewFinancials &&
+                    (uncheckedIncoming > 0 || openIncoming > 0) && (
+                        <p className="text-sm text-muted-foreground">
+                            Eingangsrechnungen:{' '}
+                            <Link
+                                href="/incoming-invoices?open=1"
+                                className="underline underline-offset-2"
+                            >
+                                {openIncoming} unbezahlt
+                            </Link>
+                            {' · '}
+                            <Link
+                                href="/incoming-invoices?unchecked=1"
+                                className="underline underline-offset-2"
+                            >
+                                {uncheckedIncoming} ungeprüft
+                            </Link>
+                        </p>
+                    )}
             </div>
         </>
     );

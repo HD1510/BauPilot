@@ -9,6 +9,7 @@ use App\Http\Controllers\Projects\ProjectNoteController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\OfferController;
 use App\Http\Controllers\Sales\ProjectController;
+use App\Http\Controllers\Sales\ProjectInvoiceController;
 use App\Http\Controllers\Sales\ProjectSubResourceController;
 use App\Http\Controllers\SiteReports\SiteReportController;
 use App\Http\Controllers\Times\TimeEntryController;
@@ -40,6 +41,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('projects/{project}/notes', [ProjectNoteController::class, 'store'])->name('projects.notes.store');
     Route::delete('notes/{note}', [ProjectNoteController::class, 'destroy'])->name('notes.destroy');
 
+    // Rechnungen am Projekt zuordnen bzw. lösen
+    Route::post('projects/{project}/invoices', [ProjectInvoiceController::class, 'store'])->name('projects.invoices.store');
+    Route::delete('projects/{project}/invoices', [ProjectInvoiceController::class, 'destroy'])->name('projects.invoices.destroy');
+
     Route::post('projects/{project}/appointments', [ProjectSubResourceController::class, 'storeAppointment'])->name('projects.appointments.store');
     Route::delete('projects/{project}/appointments/{appointment}', [ProjectSubResourceController::class, 'destroyAppointment'])->name('projects.appointments.destroy');
     Route::post('projects/{project}/change-orders', [ProjectSubResourceController::class, 'storeChangeOrder'])->name('projects.change-orders.store');
@@ -57,9 +62,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('outgoing-invoices/{outgoing_invoice}/retentions/{retention}/release', [InvoiceActionController::class, 'releaseRetention'])->name('outgoing-invoices.retentions.release');
     Route::post('outgoing-invoices/{outgoing_invoice}/adjustments', [InvoiceActionController::class, 'storeAdjustment'])->name('outgoing-invoices.adjustments.store');
 
-    // Eingangsrechnungen (Scan: KI-Auslese von PDF/Foto samt Lieferanten-Vorschlag)
-    Route::post('incoming-invoices/scan', [InvoiceScanController::class, 'store'])->name('incoming-invoices.scan');
+    // Beleg-Scan (Leiter: E-Rechnung → Textanalyse → KI) je Belegart,
+    // dazu Partner-Anlage aus erkannten Daten
+    Route::post('incoming-invoices/scan', [InvoiceScanController::class, 'incoming'])->name('incoming-invoices.scan');
     Route::post('incoming-invoices/scan/supplier', [InvoiceScanController::class, 'storeSupplier'])->name('incoming-invoices.scan.supplier');
+    Route::post('outgoing-invoices/scan', [InvoiceScanController::class, 'outgoing'])->name('outgoing-invoices.scan');
+    Route::post('offers/scan', [InvoiceScanController::class, 'offer'])->name('offers.scan');
+    Route::post('scan/customer', [InvoiceScanController::class, 'storeCustomer'])->name('scan.customer');
     Route::get('incoming-invoices', [IncomingInvoiceController::class, 'index'])->name('incoming-invoices.index');
     Route::get('incoming-invoices/create', [IncomingInvoiceController::class, 'create'])->name('incoming-invoices.create');
     Route::post('incoming-invoices', [IncomingInvoiceController::class, 'store'])->name('incoming-invoices.store');

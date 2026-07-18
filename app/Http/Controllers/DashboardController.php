@@ -7,6 +7,7 @@ use App\Enums\ProjectStatus;
 use App\Models\IncomingInvoice;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\Deadlines\DeadlineKind;
 use App\Support\Deadlines\DeadlineService;
 use App\Support\Invoicing\NumberGapService;
 use App\Support\Invoicing\OpenItemsQuery;
@@ -36,7 +37,13 @@ class DashboardController extends Controller
         $financials = $user->can('view-financials');
         $today = CarbonImmutable::parse(Date::today());
 
-        $deadlines = $deadlineService->upcoming(includeFinancials: $financials);
+        $all = $deadlineService->upcoming(includeFinancials: $financials);
+
+        // Termine (Kalender: Projekttermine) getrennt von Fristen
+        // (Zahlungsziele, Skonto, Aufgaben, Fahrzeuge, ...).
+        [$appointments, $deadlines] = $all->partition(
+            fn ($deadline) => $deadline->kind === DeadlineKind::Appointment,
+        );
 
         $props = [
             'hasCompany' => true,
@@ -44,6 +51,7 @@ class DashboardController extends Controller
             'activeProjects' => Project::query()->where('status', ProjectStatus::Active->value)->count()
                 + Project::query()->where('status', ProjectStatus::Open->value)->count(),
             'deadlines' => $deadlines->take(12)->map(fn ($deadline) => $deadline->toArray($today))->values(),
+            'appointments' => $appointments->take(8)->map(fn ($deadline) => $deadline->toArray($today))->values(),
             'overdueDeadlines' => $deadlines->filter(fn ($deadline) => $deadline->isOverdue($today))->count(),
         ];
 

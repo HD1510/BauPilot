@@ -16,40 +16,34 @@ export type ScanMatch = {
     skonto_days: number | null;
 };
 
-export type ScanPrefill = {
-    supplier_invoice_no: string | null;
-    invoice_date: string | null;
-    amount_mode: 'net' | 'gross';
-    amount: string | null;
-    vat_rate: string | null;
-    reverse_charge: boolean;
-    subject: string | null;
-    payment_due_on: string | null;
-    skonto_amount: string | null;
-    skonto_until: string | null;
+export type ScanPrefill = Record<string, string | boolean | null>;
+
+export type PartnerProposal = {
+    name: string | null;
+    payment_target_days: number;
+    skonto_percent?: number | null;
+    skonto_days?: number | null;
+    vat_id?: string | null;
+    notes?: string | null;
 };
 
 export type ScanResult = {
     scan_token: string;
     source: 'e_rechnung' | 'text' | 'ki';
     extraction: {
-        supplier_name: string | null;
+        partner_name: string | null;
         payment_target_days: number | null;
         skonto_percent: number | null;
         skonto_days: number | null;
+        doc_number: string | null;
+        doc_date: string | null;
     };
     matches: ScanMatch[];
-    supplier_proposal: {
-        name: string | null;
-        payment_target_days: number;
-        skonto_percent: number | null;
-        skonto_days: number | null;
-        notes: string | null;
-    };
+    partner_proposal: PartnerProposal;
     prefill: ScanPrefill;
 };
 
-export type ChosenSupplier = {
+export type ChosenPartner = {
     id: number;
     name: string;
     default_cost_type_id: number | null;
@@ -68,18 +62,24 @@ const SOURCE_LABELS: Record<ScanResult['source'], string> = {
 };
 
 /**
- * Rechnungsscan: PDF/Foto hochladen, die Scan-Leiter (E-Rechnung →
- * Textanalyse → KI) erkennt Lieferant samt Konditionen. Bestehende
- * Lieferanten werden zur Auswahl vorgeschlagen; gibt es keinen, wird
- * einer mit den erkannten Konditionen angelegt. Die Auswahl bestätigt
- * immer ein Mensch. Die Datei lässt sich zusätzlich lokal ablegen —
- * der Speicherort ist frei wählbar.
+ * Beleg-Scan: PDF/Foto hochladen, die Scan-Leiter (E-Rechnung →
+ * Textanalyse → KI) erkennt den Geschäftspartner (Lieferant oder Kunde)
+ * samt Konditionen. Bestehende werden zur Auswahl vorgeschlagen; gibt
+ * es keinen, wird einer mit den erkannten Daten angelegt. Die Auswahl
+ * bestätigt immer ein Mensch. Die Datei lässt sich zusätzlich lokal
+ * ablegen — der Speicherort ist frei wählbar.
  */
 export function InvoiceScanCard({
     onApply,
+    scanUrl,
+    createPartnerUrl,
+    partnerLabel,
     imagesEnabled,
 }: {
-    onApply: (result: ScanResult, supplier: ChosenSupplier | null) => void;
+    onApply: (result: ScanResult, partner: ChosenPartner | null) => void;
+    scanUrl: string;
+    createPartnerUrl: string;
+    partnerLabel: 'Lieferant' | 'Kunde';
     imagesEnabled: boolean;
 }) {
     const fileInput = useRef<HTMLInputElement>(null);
@@ -99,7 +99,7 @@ export function InvoiceScanCard({
         body.append('file', file);
 
         try {
-            const response = await fetch('/incoming-invoices/scan', {
+            const response = await fetch(scanUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -116,7 +116,7 @@ export function InvoiceScanCard({
             if (!response.ok || !json) {
                 toast.error(
                     json?.message ??
-                        'Die Rechnung konnte nicht ausgelesen werden.',
+                        'Der Beleg konnte nicht ausgelesen werden.',
                 );
 
                 return;
@@ -124,9 +124,9 @@ export function InvoiceScanCard({
 
             setResult(json);
 
-            if (json.matches.length === 0 && !json.supplier_proposal.name) {
+            if (json.matches.length === 0 && !json.partner_proposal.name) {
                 toast.info(
-                    'Kein Lieferant erkannt — bitte manuell wählen. Die Beträge wurden übernommen.',
+                    `Kein ${partnerLabel} erkannt — bitte manuell wählen. Die Beträge wurden übernommen.`,
                 );
                 onApply(json, null);
                 setChosen('none');
@@ -151,15 +151,15 @@ export function InvoiceScanCard({
         });
     };
 
-    const createSupplier = async () => {
-        if (!result || !result.supplier_proposal.name) {
+    const createPartner = async () => {
+        if (!result || !result.partner_proposal.name) {
             return;
         }
 
         setCreating(true);
 
         try {
-            const response = await fetch('/incoming-invoices/scan/supplier', {
+            const response = await fetch(createPartnerUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -168,22 +168,22 @@ export function InvoiceScanCard({
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-XSRF-TOKEN': xsrfToken(),
                 },
-                body: JSON.stringify(result.supplier_proposal),
+                body: JSON.stringify(result.partner_proposal),
             });
 
             const json = (await response.json().catch(() => null)) as
-                (ChosenSupplier & { message?: string }) | null;
+                (ChosenPartner & { message?: string }) | null;
 
             if (!response.ok || !json) {
                 toast.error(
                     json?.message ??
-                        'Der Lieferant konnte nicht angelegt werden.',
+                        `Der ${partnerLabel} konnte nicht angelegt werden.`,
                 );
 
                 return;
             }
 
-            toast.success(`Lieferant „${json.name}" angelegt.`);
+            toast.success(`${partnerLabel} „${json.name}" angelegt.`);
             setChosen('new');
             onApply(result, json);
         } catch {
@@ -202,9 +202,9 @@ export function InvoiceScanCard({
 
         const name = suggestedFileName(
             [
-                result.prefill.invoice_date,
-                result.extraction.supplier_name,
-                result.prefill.supplier_invoice_no,
+                result.extraction.doc_date,
+                result.extraction.partner_name,
+                result.extraction.doc_number,
             ],
             lastFile.name,
         );
@@ -220,11 +220,11 @@ export function InvoiceScanCard({
         }
     };
 
-    const proposal = result?.supplier_proposal;
+    const proposal = result?.partner_proposal;
     const conditions = proposal
         ? [
               `Zahlungsziel ${proposal.payment_target_days} Tage`,
-              proposal.skonto_percent !== null && proposal.skonto_days !== null
+              proposal.skonto_percent != null && proposal.skonto_days != null
                   ? `${proposal.skonto_percent} % Skonto binnen ${proposal.skonto_days} Tagen`
                   : null,
           ].filter(Boolean)
@@ -237,12 +237,12 @@ export function InvoiceScanCard({
                     <ScanText className="size-5 text-muted-foreground" />
                     <div>
                         <p className="text-sm font-medium">
-                            Rechnung automatisch auslesen
+                            Beleg automatisch auslesen
                         </p>
                         <p className="text-xs text-muted-foreground">
                             {imagesEnabled
-                                ? 'PDF oder Foto hochladen — Lieferant, Konditionen und Beträge werden erkannt'
-                                : 'PDF hochladen — E-Rechnung und Rechnungstext werden direkt gelesen (Fotos erst mit KI-Schlüssel)'}
+                                ? `PDF oder Foto hochladen — ${partnerLabel}, Konditionen und Beträge werden erkannt`
+                                : 'PDF hochladen — E-Rechnung und Belegtext werden direkt gelesen (Fotos erst mit KI-Schlüssel)'}
                         </p>
                     </div>
                 </div>
@@ -268,7 +268,7 @@ export function InvoiceScanCard({
                             : 'application/pdf'
                     }
                     className="hidden"
-                    aria-label="Rechnung für Scan wählen"
+                    aria-label="Beleg für Scan wählen"
                     onChange={(event) => {
                         const file = event.target.files?.[0];
 
@@ -286,7 +286,7 @@ export function InvoiceScanCard({
                     <div className="flex items-start justify-between gap-2">
                         <div>
                             <p className="text-sm">
-                                Erkannter Lieferant:{' '}
+                                Erkannter {partnerLabel}:{' '}
                                 <span className="font-medium">
                                     {proposal?.name ?? 'nicht erkennbar'}
                                 </span>
@@ -305,7 +305,11 @@ export function InvoiceScanCard({
                     {result.matches.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-medium text-muted-foreground">
-                                Passt einer dieser bestehenden Lieferanten?
+                                Passt einer dieser bestehenden{' '}
+                                {partnerLabel === 'Lieferant'
+                                    ? 'Lieferanten'
+                                    : 'Kunden'}
+                                ?
                             </p>
                             {result.matches.map((match) => (
                                 <div
@@ -345,7 +349,7 @@ export function InvoiceScanCard({
                             <p className="text-xs text-muted-foreground">
                                 {result.matches.length > 0
                                     ? 'Keiner davon? Dann neu anlegen:'
-                                    : 'Kein bestehender Lieferant gefunden:'}
+                                    : `Kein bestehender ${partnerLabel} gefunden:`}
                             </p>
                             <Button
                                 type="button"
@@ -354,7 +358,7 @@ export function InvoiceScanCard({
                                     chosen === 'new' ? 'default' : 'outline'
                                 }
                                 disabled={creating || chosen === 'new'}
-                                onClick={() => void createSupplier()}
+                                onClick={() => void createPartner()}
                             >
                                 {creating ? (
                                     <Spinner className="size-4" />

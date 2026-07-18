@@ -41,6 +41,7 @@ class OutgoingInvoiceRequest extends MasterDataRequest
             'partial_ids' => ['nullable', 'array'],
             'partial_ids.*' => [Rule::exists('outgoing_invoices', 'id')->where('company_id', $this->activeCompanyId())],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'scan_token' => ['nullable', 'uuid'],
         ];
     }
 

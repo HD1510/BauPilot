@@ -3,21 +3,22 @@
 namespace App\Support\InvoiceScan;
 
 /**
- * Ergebnis der KI-Auslese einer Eingangsrechnung: Lieferant, Konditionen
- * und Rechnungskopf. Alles optional — was das Dokument nicht hergibt,
- * bleibt null und wird im Formular von Hand ergänzt.
+ * Ergebnis der Beleg-Auslese: Geschäftspartner (Lieferant bei
+ * Eingangsrechnungen, Kunde bei Ausgangsrechnungen und Angeboten),
+ * Konditionen und Belegkopf. Alles optional — was das Dokument nicht
+ * hergibt, bleibt null und wird im Formular von Hand ergänzt.
  */
 final readonly class ScannedInvoice
 {
     public function __construct(
-        public ?string $supplierName = null,
-        public ?string $supplierUid = null,
-        public ?string $supplierIban = null,
+        public ?string $partnerName = null,
+        public ?string $partnerUid = null,
+        public ?string $partnerIban = null,
         public ?int $paymentTargetDays = null,
         public ?float $skontoPercent = null,
         public ?int $skontoDays = null,
-        public ?string $supplierInvoiceNo = null,
-        public ?string $invoiceDate = null,
+        public ?string $docNumber = null,
+        public ?string $docDate = null,
         public ?float $net = null,
         public ?float $vatRate = null,
         public ?float $gross = null,
@@ -36,17 +37,17 @@ final readonly class ScannedInvoice
         $number = fn (string $key): ?float => is_numeric($data[$key] ?? null) ? (float) $data[$key] : null;
         $int = fn (string $key): ?int => is_numeric($data[$key] ?? null) ? (int) $data[$key] : null;
 
-        $date = $string('invoice_date');
+        $date = $string('doc_date');
 
         return new self(
-            supplierName: $string('supplier_name'),
-            supplierUid: $string('supplier_uid'),
-            supplierIban: $string('supplier_iban'),
+            partnerName: $string('partner_name'),
+            partnerUid: $string('partner_uid'),
+            partnerIban: $string('partner_iban'),
             paymentTargetDays: $int('payment_target_days'),
             skontoPercent: $number('skonto_percent'),
             skontoDays: $int('skonto_days'),
-            supplierInvoiceNo: $string('supplier_invoice_no'),
-            invoiceDate: $date !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : null,
+            docNumber: $string('doc_number'),
+            docDate: $date !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : null,
             net: $number('net'),
             vatRate: $number('vat_rate'),
             gross: $number('gross'),
@@ -61,14 +62,14 @@ final readonly class ScannedInvoice
     public function toArray(): array
     {
         return [
-            'supplier_name' => $this->supplierName,
-            'supplier_uid' => $this->supplierUid,
-            'supplier_iban' => $this->supplierIban,
+            'partner_name' => $this->partnerName,
+            'partner_uid' => $this->partnerUid,
+            'partner_iban' => $this->partnerIban,
             'payment_target_days' => $this->paymentTargetDays,
             'skonto_percent' => $this->skontoPercent,
             'skonto_days' => $this->skontoDays,
-            'supplier_invoice_no' => $this->supplierInvoiceNo,
-            'invoice_date' => $this->invoiceDate,
+            'doc_number' => $this->docNumber,
+            'doc_date' => $this->docDate,
             'net' => $this->net,
             'vat_rate' => $this->vatRate,
             'gross' => $this->gross,

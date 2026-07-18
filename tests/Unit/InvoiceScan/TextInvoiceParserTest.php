@@ -23,11 +23,11 @@ test('typische österreichische rechnung wird vollständig erkannt', function ()
 
     $invoice = TextInvoiceParser::parse($text);
 
-    expect($invoice->supplierName)->toBe('Huber Transporte GmbH')
-        ->and($invoice->supplierUid)->toBe('ATU12345678')
-        ->and($invoice->supplierIban)->toBe('AT611904300234573201')
-        ->and($invoice->supplierInvoiceNo)->toBe('RE-2026-0815')
-        ->and($invoice->invoiceDate)->toBe('2026-07-01')
+    expect($invoice->partnerName)->toBe('Huber Transporte GmbH')
+        ->and($invoice->partnerUid)->toBe('ATU12345678')
+        ->and($invoice->partnerIban)->toBe('AT611904300234573201')
+        ->and($invoice->docNumber)->toBe('RE-2026-0815')
+        ->and($invoice->docDate)->toBe('2026-07-01')
         ->and($invoice->net)->toBe(1000.0)
         ->and($invoice->vatRate)->toBe(20.0)
         ->and($invoice->gross)->toBe(1200.0)
@@ -40,8 +40,8 @@ test('typische österreichische rechnung wird vollständig erkannt', function ()
 test('eigene uid des empfängers wird übersprungen', function () {
     $text = "Zimmerei Holzmann e.U.\nUID ATU99999999\nRechnung an Bau GmbH, UID ATU11111111";
 
-    expect(TextInvoiceParser::parse($text, ownVatId: 'ATU99999999')->supplierUid)->toBe('ATU11111111')
-        ->and(TextInvoiceParser::parse($text)->supplierUid)->toBe('ATU99999999');
+    expect(TextInvoiceParser::parse($text, ownVatId: 'ATU99999999')->partnerUid)->toBe('ATU11111111')
+        ->and(TextInvoiceParser::parse($text)->partnerUid)->toBe('ATU99999999');
 });
 
 test('reverse charge und paragraph 19 werden erkannt', function () {
@@ -71,13 +71,13 @@ test('brutto-erkennung mit rechnungsbetrag und internationalem zahlenformat', fu
     $invoice = TextInvoiceParser::parse("Rechnungsbetrag: € 590.00\nDatum 05.07.26");
 
     expect($invoice->gross)->toBe(590.0)
-        ->and($invoice->invoiceDate)->toBe('2026-07-05');
+        ->and($invoice->docDate)->toBe('2026-07-05');
 });
 
 test('briefkopf-heuristik findet firma mit rechtsform, bekannter lieferant hat vorrang', function () {
     $text = "Zimmerei Holzmann e.U.\nGewerbepark 3\nRechnung Nr. HZ-77";
 
-    expect(TextInvoiceParser::parse($text)->supplierName)->toBe('Zimmerei Holzmann e.U.')
-        ->and(TextInvoiceParser::parse($text, knownSupplierName: 'Holzmann Zimmerei')->supplierName)->toBe('Holzmann Zimmerei')
-        ->and(TextInvoiceParser::parse("Max Mustermann\nPrivatrechnung")->supplierName)->toBeNull();
+    expect(TextInvoiceParser::parse($text)->partnerName)->toBe('Zimmerei Holzmann e.U.')
+        ->and(TextInvoiceParser::parse($text, knownPartnerName: 'Holzmann Zimmerei')->partnerName)->toBe('Holzmann Zimmerei')
+        ->and(TextInvoiceParser::parse("Max Mustermann\nPrivatrechnung")->partnerName)->toBeNull();
 });

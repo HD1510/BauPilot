@@ -9,6 +9,8 @@ use App\Models\ChangeOrder;
 use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ExternalOffer;
+use App\Models\IncomingInvoice;
+use App\Models\OutgoingInvoice;
 use App\Models\Project;
 use App\Models\ProjectNote;
 use App\Models\Supplier;
@@ -186,9 +188,28 @@ class ProjectController extends Controller
                 ]),
             'members' => $this->userOptions(),
             'suppliers' => $financials ? $this->supplierOptions() : [],
+            // Noch keinem Projekt zugeordnete Rechnungen — für die
+            // Zuordnung direkt auf der Projektseite.
+            'assignableIncoming' => $financials
+                ? IncomingInvoice::query()->whereNull('project_id')
+                    ->with('supplier:id,name')->orderByDesc('invoice_date')->limit(100)->get()
+                    ->map(fn (IncomingInvoice $invoice): array => [
+                        'id' => $invoice->id,
+                        'label' => trim($invoice->supplier->name.' '.($invoice->supplier_invoice_no ?? '')).' — '.number_format((float) $invoice->gross, 2, ',', '.').' €',
+                    ])
+                : [],
+            'assignableOutgoing' => $financials
+                ? OutgoingInvoice::query()->whereNull('project_id')->whereNull('original_invoice_id')
+                    ->with('customer:id,name')->orderByDesc('invoice_date')->limit(100)->get()
+                    ->map(fn (OutgoingInvoice $invoice): array => [
+                        'id' => $invoice->id,
+                        'label' => $invoice->number.' '.$invoice->customer->name.' — '.number_format((float) $invoice->gross, 2, ',', '.').' €',
+                    ])
+                : [],
             'canWrite' => Gate::allows('update', $project),
             'canAttach' => Gate::allows('attach', $project),
             'canViewFinancials' => $financials,
+            'canManageInvoices' => $financials && Gate::allows('create', IncomingInvoice::class),
         ]);
     }
 

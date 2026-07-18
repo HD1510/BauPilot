@@ -10,15 +10,13 @@ use App\Models\CostType;
 use App\Models\IncomingInvoice;
 use App\Models\Project;
 use App\Models\Supplier;
-use App\Support\Documents\DocumentUploader;
 use App\Support\InvoiceScan\InvoiceScanner;
+use App\Support\InvoiceScan\ScannedFileAttacher;
 use App\Support\Money\MoneyHelper;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,7 +62,7 @@ class IncomingInvoiceController extends Controller
         ]);
     }
 
-    public function create(InvoiceScanner $scanner): Response
+    public function create(Request $request, InvoiceScanner $scanner): Response
     {
         Gate::authorize('create', IncomingInvoice::class);
 
@@ -73,52 +71,20 @@ class IncomingInvoiceController extends Controller
             // PDFs liest die Scan-Leiter immer (E-Rechnung/Text);
             // Fotos und gescannte PDFs brauchen die KI-Stufe.
             'scanImagesEnabled' => $scanner->enabled(),
+            // Von der Projektseite aus erfasst: Projekt vorauswählen.
+            'preselectedProjectId' => $request->integer('project') ?: null,
         ]);
     }
 
-    public function store(IncomingInvoiceRequest $request, DocumentUploader $uploader): RedirectResponse
+    public function store(IncomingInvoiceRequest $request, ScannedFileAttacher $attacher): RedirectResponse
     {
         $invoice = IncomingInvoice::create($this->payload($request));
 
-        $this->attachScannedFile($request, $invoice, $uploader);
+        $token = $request->validated('scan_token');
+        $attacher->attach($invoice, 'incoming_invoice', is_string($token) ? $token : null, DocumentCategory::Invoice);
 
         return redirect()->route('incoming-invoices.edit', $invoice)
             ->with('success', 'Eingangsrechnung wurde erfasst.');
-    }
-
-    /**
-     * Die beim KI-Scan beiseitegelegte Datei als Beleg anhängen. Der Pfad
-     * enthält die Firmen-ID der Rechnung — fremde Tokens laufen ins Leere.
-     */
-    private function attachScannedFile(IncomingInvoiceRequest $request, IncomingInvoice $invoice, DocumentUploader $uploader): void
-    {
-        $token = $request->validated('scan_token');
-
-        if (! is_string($token) || $token === '') {
-            return;
-        }
-
-        $directory = sprintf('%s/%d/scan/%s', app()->environment(), $invoice->company_id, $token);
-        $files = Storage::disk('documents')->files($directory);
-
-        if ($files === []) {
-            return;
-        }
-
-        $uploader->upload(
-            $invoice,
-            'incoming_invoice',
-            new UploadedFile(
-                Storage::disk('documents')->path($files[0]),
-                basename($files[0]),
-                Storage::disk('documents')->mimeType($files[0]) ?: 'application/octet-stream',
-                null,
-                true,
-            ),
-            DocumentCategory::Invoice,
-        );
-
-        Storage::disk('documents')->deleteDirectory($directory);
     }
 
     public function edit(IncomingInvoice $incomingInvoice): Response

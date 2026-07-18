@@ -1,22 +1,32 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { FolderKanban } from 'lucide-react';
+import { DocumentsSection } from '@/components/documents-section';
+import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
-import {
-    OfferForm
-    
-    
-    
+import { OfferForm } from '@/components/sales/offer-form';
+import type {
+    OfferFormValues,
+    Option,
+    StatusOption,
 } from '@/components/sales/offer-form';
-import type {OfferFormValues, Option, StatusOption} from '@/components/sales/offer-form';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 type Props = {
     offer: OfferFormValues & { id: number; project_id: number | null };
     customers: Option[];
     statuses: StatusOption[];
+    documents: DocumentItem[];
+    canWrite: boolean;
 };
 
-export default function OffersEdit({ offer, customers, statuses }: Props) {
+export default function OffersEdit({
+    offer,
+    customers,
+    statuses,
+    documents,
+    canWrite,
+}: Props) {
     return (
         <>
             <Head title="Angebot bearbeiten" />
@@ -52,6 +62,16 @@ export default function OffersEdit({ offer, customers, statuses }: Props) {
                     customers={customers}
                     statuses={statuses}
                     submitLabel="Änderungen speichern"
+                />
+
+                <Separator />
+
+                <DocumentsSection
+                    documentableType="offer"
+                    documentableId={offer.id}
+                    documents={documents}
+                    canWrite={canWrite}
+                    defaultCategory="offer"
                 />
             </div>
         </>

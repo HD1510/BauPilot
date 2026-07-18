@@ -10,7 +10,7 @@ import type {
 } from '@/components/invoicing/incoming-invoice-form';
 import { InvoiceScanCard } from '@/components/invoicing/invoice-scan-card';
 import type {
-    ChosenSupplier,
+    ChosenPartner,
     ScanResult,
 } from '@/components/invoicing/invoice-scan-card';
 
@@ -20,16 +20,21 @@ type ScanState = {
     invoice: Partial<IncomingInvoiceFormValues>;
 };
 
+const str = (value: unknown): string | undefined =>
+    typeof value === 'string' && value !== '' ? value : undefined;
+
 export default function IncomingInvoicesCreate({
     suppliers,
     costTypes,
     projects,
     scanImagesEnabled,
+    preselectedProjectId,
 }: {
     suppliers: SupplierOption[];
     costTypes: Option[];
     projects: ProjectOption[];
     scanImagesEnabled: boolean;
+    preselectedProjectId: number | null;
 }) {
     const [supplierList, setSupplierList] = useState(suppliers);
     const [scan, setScan] = useState<ScanState | null>(null);
@@ -37,7 +42,7 @@ export default function IncomingInvoicesCreate({
     // Extraktion + gewählten Lieferanten ins Formular übernehmen. Das
     // Formular wird über key neu aufgebaut — der Scan füllt vor, der
     // Mensch prüft und speichert.
-    const applyScan = (result: ScanResult, supplier: ChosenSupplier | null) => {
+    const applyScan = (result: ScanResult, supplier: ChosenPartner | null) => {
         if (supplier && !supplierList.some((s) => s.id === supplier.id)) {
             setSupplierList([
                 ...supplierList,
@@ -57,12 +62,12 @@ export default function IncomingInvoicesCreate({
             token: result.scan_token,
             invoice: {
                 supplier_id: supplier?.id ?? null,
-                supplier_invoice_no: prefill.supplier_invoice_no,
-                invoice_date: prefill.invoice_date ?? undefined,
-                amount_mode: prefill.amount_mode,
-                amount: prefill.amount ?? undefined,
-                vat_rate: prefill.vat_rate ?? undefined,
-                reverse_charge: prefill.reverse_charge,
+                supplier_invoice_no: str(prefill.supplier_invoice_no) ?? null,
+                invoice_date: str(prefill.invoice_date),
+                amount_mode: prefill.amount_mode === 'gross' ? 'gross' : 'net',
+                amount: str(prefill.amount),
+                vat_rate: str(prefill.vat_rate),
+                reverse_charge: prefill.reverse_charge === true,
                 // Nur vorbelegen, wenn die Kostenart auch wählbar ist —
                 // sonst zeigt das Pflichtfeld sichtbar „wählen".
                 cost_type_id: costTypes.some(
@@ -71,10 +76,11 @@ export default function IncomingInvoicesCreate({
                 )
                     ? (supplier?.default_cost_type_id ?? null)
                     : null,
-                subject: prefill.subject,
-                payment_due_on: prefill.payment_due_on,
-                skonto_amount: prefill.skonto_amount,
-                skonto_until: prefill.skonto_until,
+                project_id: preselectedProjectId,
+                subject: str(prefill.subject) ?? null,
+                payment_due_on: str(prefill.payment_due_on) ?? null,
+                skonto_amount: str(prefill.skonto_amount) ?? null,
+                skonto_until: str(prefill.skonto_until) ?? null,
             },
         });
     };
@@ -89,13 +95,18 @@ export default function IncomingInvoicesCreate({
                 />
                 <InvoiceScanCard
                     onApply={applyScan}
+                    scanUrl="/incoming-invoices/scan"
+                    createPartnerUrl="/incoming-invoices/scan/supplier"
+                    partnerLabel="Lieferant"
                     imagesEnabled={scanImagesEnabled}
                 />
                 <IncomingInvoiceForm
                     key={scan?.key ?? 0}
                     action="/incoming-invoices"
                     method="post"
-                    invoice={scan?.invoice}
+                    invoice={
+                        scan?.invoice ?? { project_id: preselectedProjectId }
+                    }
                     scanToken={scan?.token}
                     suppliers={supplierList}
                     costTypes={costTypes}

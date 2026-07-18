@@ -39,13 +39,13 @@ test('scan erkennt bestehenden lieferanten und befüllt die konditionen', functi
     app(CompanyContext::class)->clear();
 
     fakeScanner(new ScannedInvoice(
-        supplierName: 'Huber Transporte GmbH',
-        supplierUid: 'ATU12345678',
+        partnerName: 'Huber Transporte GmbH',
+        partnerUid: 'ATU12345678',
         paymentTargetDays: 21,
         skontoPercent: 3.0,
         skontoDays: 14,
-        supplierInvoiceNo: 'RE-2026-0815',
-        invoiceDate: '2026-07-01',
+        docNumber: 'RE-2026-0815',
+        docDate: '2026-07-01',
         net: 1000.0,
         vatRate: 20.0,
         gross: 1200.0,
@@ -60,8 +60,8 @@ test('scan erkennt bestehenden lieferanten und befüllt die konditionen', functi
     expect($response->json('matches.0.id'))->toBe($existing->id)
         ->and($response->json('matches.0.similarity'))->toBe(1)
         ->and($response->json('matches.0.payment_target_days'))->toBe(21)
-        ->and($response->json('extraction.supplier_name'))->toBe('Huber Transporte GmbH')
-        ->and($response->json('supplier_proposal.notes'))->toBe('UID: ATU12345678')
+        ->and($response->json('extraction.partner_name'))->toBe('Huber Transporte GmbH')
+        ->and($response->json('partner_proposal.notes'))->toBe('UID: ATU12345678')
         ->and($response->json('prefill.amount'))->toBe('1000.00')
         ->and($response->json('prefill.amount_mode'))->toBe('net')
         ->and($response->json('prefill.vat_rate'))->toBe('20.00')
@@ -79,7 +79,7 @@ test('scan ohne treffer: brutto-modus und ähnliche kandidaten bleiben leer', fu
     actingMember();
 
     fakeScanner(new ScannedInvoice(
-        supplierName: 'Neuer Lieferant e.U.',
+        partnerName: 'Neuer Lieferant e.U.',
         gross: 590.0,
         vatRate: 18.0,
         reverseCharge: true,
@@ -95,8 +95,8 @@ test('scan ohne treffer: brutto-modus und ähnliche kandidaten bleiben leer', fu
         ->and($response->json('prefill.amount'))->toBe('590.00')
         ->and($response->json('prefill.vat_rate'))->toBe('0.00')
         ->and($response->json('prefill.reverse_charge'))->toBeTrue()
-        ->and($response->json('supplier_proposal.name'))->toBe('Neuer Lieferant e.U.')
-        ->and($response->json('supplier_proposal.payment_target_days'))->toBe(30);
+        ->and($response->json('partner_proposal.name'))->toBe('Neuer Lieferant e.U.')
+        ->and($response->json('partner_proposal.payment_target_days'))->toBe(30);
 });
 
 test('scan schlägt ähnliche lieferanten über die dubletten-erkennung vor', function () {
@@ -108,7 +108,7 @@ test('scan schlägt ähnliche lieferanten über die dubletten-erkennung vor', fu
     ]);
     app(CompanyContext::class)->clear();
 
-    fakeScanner(new ScannedInvoice(supplierName: 'Mueller Baustoffe'));
+    fakeScanner(new ScannedInvoice(partnerName: 'Mueller Baustoffe'));
 
     $response = $this->post('/incoming-invoices/scan', [
         'file' => UploadedFile::fake()->create('rechnung.pdf', 50, 'application/pdf'),

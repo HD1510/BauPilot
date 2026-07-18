@@ -28,6 +28,7 @@ class OfferRequest extends MasterDataRequest
             'offer_number' => ['nullable', 'string', 'max:50'],
             'offer_amount_net' => ['nullable', 'decimal:0,2', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'scan_token' => ['nullable', 'uuid'],
         ];
     }
 

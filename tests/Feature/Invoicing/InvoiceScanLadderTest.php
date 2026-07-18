@@ -77,9 +77,9 @@ test('e-rechnung (zugferd) wird ohne ki exakt ausgelesen', function () {
     ])->assertOk();
 
     expect($response->json('source'))->toBe('e_rechnung')
-        ->and($response->json('extraction.supplier_name'))->toBe('Huber Transporte GmbH')
-        ->and($response->json('extraction.supplier_uid'))->toBe('ATU12345678')
-        ->and($response->json('extraction.supplier_iban'))->toBe('AT611904300234573201')
+        ->and($response->json('extraction.partner_name'))->toBe('Huber Transporte GmbH')
+        ->and($response->json('extraction.partner_uid'))->toBe('ATU12345678')
+        ->and($response->json('extraction.partner_iban'))->toBe('AT611904300234573201')
         ->and($response->json('extraction.payment_target_days'))->toBe(21)
         ->and($response->json('extraction.skonto_percent'))->toBe(3)
         ->and($response->json('extraction.skonto_days'))->toBe(14)
@@ -115,7 +115,7 @@ test('text-pdf wird ohne ki über muster gelesen, bestehender lieferant im text 
 
     // Der Lieferant steht wörtlich im Text — Treffer mit 100 %.
     expect($response->json('source'))->toBe('text')
-        ->and($response->json('extraction.supplier_name'))->toBe('Huber Transporte GmbH')
+        ->and($response->json('extraction.partner_name'))->toBe('Huber Transporte GmbH')
         ->and($response->json('matches.0.id'))->toBe($existing->id)
         ->and($response->json('matches.0.similarity'))->toBe(1)
         ->and($response->json('prefill.amount'))->toBe('1000.00')
@@ -148,7 +148,7 @@ test('dünner text mit aktiver ki: die ki-stufe übernimmt', function () {
     test()->mock(InvoiceScanner::class, function ($mock) {
         $mock->shouldReceive('enabled')->andReturn(true);
         $mock->shouldReceive('scan')->once()->andReturn(new ScannedInvoice(
-            supplierName: 'Zimmerei Holzmann e.U.',
+            partnerName: 'Zimmerei Holzmann e.U.',
             gross: 590.0,
         ));
     });
@@ -159,5 +159,5 @@ test('dünner text mit aktiver ki: die ki-stufe übernimmt', function () {
     ])->assertOk();
 
     expect($response->json('source'))->toBe('ki')
-        ->and($response->json('extraction.supplier_name'))->toBe('Zimmerei Holzmann e.U.');
+        ->and($response->json('extraction.partner_name'))->toBe('Zimmerei Holzmann e.U.');
 });

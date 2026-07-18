@@ -1,7 +1,8 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Pencil, Trash2 } from 'lucide-react';
-import { DocumentsSection  } from '@/components/documents-section';
-import type {DocumentItem} from '@/components/documents-section';
+import { Link2, Pencil, Plus, Trash2, Unlink } from 'lucide-react';
+import { useState } from 'react';
+import { DocumentsSection } from '@/components/documents-section';
+import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
 import { NotesSection } from '@/components/projects/notes-section';
 import type { NoteItem } from '@/components/projects/notes-section';
@@ -95,9 +96,12 @@ type Props = {
     projectNotes: NoteItem[];
     members: { id: number; name: string }[];
     suppliers: { id: number; name: string }[];
+    assignableIncoming: { id: number; label: string }[];
+    assignableOutgoing: { id: number; label: string }[];
     canWrite: boolean;
     canAttach: boolean;
     canViewFinancials: boolean;
+    canManageInvoices: boolean;
 };
 
 const changeOrderStatuses = [
@@ -129,7 +133,10 @@ export default function ProjectsShow({
     canWrite,
     canAttach,
     canViewFinancials,
+    canManageInvoices,
     suppliers,
+    assignableIncoming,
+    assignableOutgoing,
 }: Props) {
     return (
         <>
@@ -157,11 +164,26 @@ export default function ProjectsShow({
 
                 <div className="grid max-w-3xl grid-cols-2 gap-x-8 gap-y-1 text-sm md:grid-cols-3">
                     <Fact label="Verantwortlich" value={project.responsible} />
-                    <Fact label="Beauftragt" value={formatDate(project.commissioned_on)} />
-                    <Fact label="Begonnen" value={formatDate(project.started_on)} />
-                    <Fact label="Geplantes Ende" value={formatDate(project.planned_finish_on)} />
-                    <Fact label="Fertiggestellt" value={formatDate(project.finished_on)} />
-                    <Fact label="Gewährleistung bis" value={formatDate(project.warranty_until)} />
+                    <Fact
+                        label="Beauftragt"
+                        value={formatDate(project.commissioned_on)}
+                    />
+                    <Fact
+                        label="Begonnen"
+                        value={formatDate(project.started_on)}
+                    />
+                    <Fact
+                        label="Geplantes Ende"
+                        value={formatDate(project.planned_finish_on)}
+                    />
+                    <Fact
+                        label="Fertiggestellt"
+                        value={formatDate(project.finished_on)}
+                    />
+                    <Fact
+                        label="Gewährleistung bis"
+                        value={formatDate(project.warranty_until)}
+                    />
                 </div>
                 {project.description && (
                     <p className="max-w-3xl text-sm text-muted-foreground">
@@ -172,12 +194,22 @@ export default function ProjectsShow({
                 {/* Projektzahlen mit Deckungsbeitrag (M8) — nur Finanzrollen */}
                 {figures && (
                     <div className="flex max-w-3xl flex-wrap gap-3">
-                        <FigureTile label="Erlöse (netto)" value={formatEUR(figures.revenue_net)} />
-                        <FigureTile label="Fremdkosten (netto)" value={formatEUR(figures.external_costs_net)} />
+                        <FigureTile
+                            label="Erlöse (netto)"
+                            value={formatEUR(figures.revenue_net)}
+                        />
+                        <FigureTile
+                            label="Fremdkosten (netto)"
+                            value={formatEUR(figures.external_costs_net)}
+                        />
                         <FigureTile
                             label={`Lohnkosten (${figures.hours.toLocaleString('de-AT')} h)`}
                             value={formatEUR(figures.labor_cost)}
-                            hint={figures.unrated_hours > 0 ? `${figures.unrated_hours.toLocaleString('de-AT')} h ohne Stundensatz` : undefined}
+                            hint={
+                                figures.unrated_hours > 0
+                                    ? `${figures.unrated_hours.toLocaleString('de-AT')} h ohne Stundensatz`
+                                    : undefined
+                            }
                         />
                         <FigureTile
                             label={`Deckungsbeitrag${figures.margin_percent !== null ? ` (${figures.margin_percent.toLocaleString('de-AT')} %)` : ''}`}
@@ -190,25 +222,45 @@ export default function ProjectsShow({
                 <Separator />
 
                 {/* Termine */}
-                <Heading variant="small" title="Termine" description="Fließen später in die Fristenliste ein" />
+                <Heading
+                    variant="small"
+                    title="Termine"
+                    description="Fließen später in die Fristenliste ein"
+                />
                 <div className="grid max-w-xl gap-2">
                     {appointments.map((appointment) => (
-                        <div key={appointment.id} className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border">
-                            <span className="flex-1 font-medium">{appointment.label}</span>
-                            <span className="text-sm text-muted-foreground">{formatDate(appointment.on_date)}</span>
+                        <div
+                            key={appointment.id}
+                            className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                        >
+                            <span className="flex-1 font-medium">
+                                {appointment.label}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                {formatDate(appointment.on_date)}
+                            </span>
                             {canWrite && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     aria-label={`${appointment.label} entfernen`}
-                                    onClick={() => router.delete(`/projects/${project.id}/appointments/${appointment.id}`, { preserveScroll: true })}
+                                    onClick={() =>
+                                        router.delete(
+                                            `/projects/${project.id}/appointments/${appointment.id}`,
+                                            { preserveScroll: true },
+                                        )
+                                    }
                                 >
                                     <Trash2 className="size-4" />
                                 </Button>
                             )}
                         </div>
                     ))}
-                    {appointments.length === 0 && <p className="text-sm text-muted-foreground">Keine Termine.</p>}
+                    {appointments.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            Keine Termine.
+                        </p>
+                    )}
                 </div>
                 {canWrite && <AddAppointmentForm projectId={project.id} />}
 
@@ -224,95 +276,247 @@ export default function ProjectsShow({
                 <Separator />
 
                 {/* Nachträge */}
-                <Heading variant="small" title="Nachträge" description={canViewFinancials ? 'Zusatzaufträge mit Statuslauf und Betrag' : 'Zusatzaufträge mit Statuslauf'} />
+                <Heading
+                    variant="small"
+                    title="Nachträge"
+                    description={
+                        canViewFinancials
+                            ? 'Zusatzaufträge mit Statuslauf und Betrag'
+                            : 'Zusatzaufträge mit Statuslauf'
+                    }
+                />
                 <div className="grid max-w-xl gap-2">
                     {changeOrders.map((changeOrder) => (
-                        <div key={changeOrder.id} className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border">
+                        <div
+                            key={changeOrder.id}
+                            className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                        >
                             <div className="flex-1">
-                                <div className="font-medium">{changeOrder.title}</div>
-                                {canViewFinancials && changeOrder.amount_net && (
-                                    <div className="text-sm text-muted-foreground">{formatEUR(changeOrder.amount_net)} netto</div>
-                                )}
+                                <div className="font-medium">
+                                    {changeOrder.title}
+                                </div>
+                                {canViewFinancials &&
+                                    changeOrder.amount_net && (
+                                        <div className="text-sm text-muted-foreground">
+                                            {formatEUR(changeOrder.amount_net)}{' '}
+                                            netto
+                                        </div>
+                                    )}
                             </div>
                             {canWrite ? (
                                 <Select
                                     defaultValue={changeOrder.status}
-                                    onValueChange={(status) => router.patch(`/projects/${project.id}/change-orders/${changeOrder.id}`, { status, amount_net: changeOrder.amount_net }, { preserveScroll: true })}
+                                    onValueChange={(status) =>
+                                        router.patch(
+                                            `/projects/${project.id}/change-orders/${changeOrder.id}`,
+                                            {
+                                                status,
+                                                amount_net:
+                                                    changeOrder.amount_net,
+                                            },
+                                            { preserveScroll: true },
+                                        )
+                                    }
                                 >
-                                    <SelectTrigger className="w-40" aria-label={`Status von ${changeOrder.title}`}>
+                                    <SelectTrigger
+                                        className="w-40"
+                                        aria-label={`Status von ${changeOrder.title}`}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {changeOrderStatuses.map((status) => (
-                                            <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                            <SelectItem
+                                                key={status.value}
+                                                value={status.value}
+                                            >
+                                                {status.label}
+                                            </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             ) : (
-                                <Badge variant="outline">{changeOrder.status_label}</Badge>
+                                <Badge variant="outline">
+                                    {changeOrder.status_label}
+                                </Badge>
                             )}
                         </div>
                     ))}
-                    {changeOrders.length === 0 && <p className="text-sm text-muted-foreground">Keine Nachträge.</p>}
+                    {changeOrders.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            Keine Nachträge.
+                        </p>
+                    )}
                 </div>
-                {canWrite && <AddChangeOrderForm projectId={project.id} showAmount={canViewFinancials} />}
+                {canWrite && (
+                    <AddChangeOrderForm
+                        projectId={project.id}
+                        showAmount={canViewFinancials}
+                    />
+                )}
 
                 {canViewFinancials && externalOffers !== null && (
                     <>
                         <Separator />
-                        <Heading variant="small" title="Fremdangebote" description="Eingeholte Angebote von Lieferanten und Subunternehmern" />
+                        <Heading
+                            variant="small"
+                            title="Fremdangebote"
+                            description="Eingeholte Angebote von Lieferanten und Subunternehmern"
+                        />
                         <div className="grid max-w-xl gap-2">
                             {externalOffers.map((externalOffer) => (
-                                <div key={externalOffer.id} className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border">
+                                <div
+                                    key={externalOffer.id}
+                                    className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                                >
                                     <div className="flex-1">
-                                        <div className="font-medium">{externalOffer.title}</div>
+                                        <div className="font-medium">
+                                            {externalOffer.title}
+                                        </div>
                                         <div className="text-sm text-muted-foreground">
                                             {externalOffer.supplier}
-                                            {externalOffer.amount_net && ` · ${formatEUR(externalOffer.amount_net)} netto`}
-                                            {externalOffer.valid_until && ` · gültig bis ${formatDate(externalOffer.valid_until)}`}
+                                            {externalOffer.amount_net &&
+                                                ` · ${formatEUR(externalOffer.amount_net)} netto`}
+                                            {externalOffer.valid_until &&
+                                                ` · gültig bis ${formatDate(externalOffer.valid_until)}`}
                                         </div>
                                     </div>
                                     {canWrite ? (
                                         <Select
                                             defaultValue={externalOffer.status}
-                                            onValueChange={(status) => router.patch(`/projects/${project.id}/external-offers/${externalOffer.id}`, { status }, { preserveScroll: true })}
+                                            onValueChange={(status) =>
+                                                router.patch(
+                                                    `/projects/${project.id}/external-offers/${externalOffer.id}`,
+                                                    { status },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
                                         >
-                                            <SelectTrigger className="w-36" aria-label={`Status von ${externalOffer.title}`}>
+                                            <SelectTrigger
+                                                className="w-36"
+                                                aria-label={`Status von ${externalOffer.title}`}
+                                            >
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {externalOfferStatuses.map((status) => (
-                                                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                                                ))}
+                                                {externalOfferStatuses.map(
+                                                    (status) => (
+                                                        <SelectItem
+                                                            key={status.value}
+                                                            value={status.value}
+                                                        >
+                                                            {status.label}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <Badge variant="outline">{externalOffer.status_label}</Badge>
+                                        <Badge variant="outline">
+                                            {externalOffer.status_label}
+                                        </Badge>
                                     )}
                                 </div>
                             ))}
-                            {externalOffers.length === 0 && <p className="text-sm text-muted-foreground">Keine Fremdangebote.</p>}
+                            {externalOffers.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Keine Fremdangebote.
+                                </p>
+                            )}
                         </div>
-                        {canWrite && <AddExternalOfferForm projectId={project.id} suppliers={suppliers} />}
+                        {canWrite && (
+                            <AddExternalOfferForm
+                                projectId={project.id}
+                                suppliers={suppliers}
+                            />
+                        )}
                     </>
                 )}
 
                 {canViewFinancials && openItems !== null && (
                     <>
                         <Separator />
-                        <Heading variant="small" title="Ausgangsrechnungen" description="Belege dieses Projekts mit Zahlungsstand" />
+                        <div className="flex max-w-3xl items-center justify-between">
+                            <Heading
+                                variant="small"
+                                title="Ausgangsrechnungen"
+                                description="Belege dieses Projekts mit Zahlungsstand"
+                            />
+                            {canManageInvoices && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link
+                                        href={`/outgoing-invoices/create?project=${project.id}`}
+                                    >
+                                        <Plus className="size-4" />
+                                        Neu erfassen
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
                         <div className="grid max-w-3xl gap-2">
                             {openItems.map((row) => (
-                                <Link key={row.id} href={`/outgoing-invoices/${row.id}`} className="flex items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border">
-                                    <span className="font-medium">{row.number}</span>
-                                    <Badge variant="outline">{row.doc_type_label}</Badge>
-                                    <span className="flex-1" />
-                                    <span>{formatEUR(row.gross_effective)}</span>
-                                    <span className="text-muted-foreground">fällig: {formatEUR(row.due_now)}</span>
-                                    <Badge variant="secondary">{row.status_label}</Badge>
-                                </Link>
+                                <div
+                                    key={row.id}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Link
+                                        href={`/outgoing-invoices/${row.id}`}
+                                        className="flex flex-1 items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
+                                    >
+                                        <span className="font-medium">
+                                            {row.number}
+                                        </span>
+                                        <Badge variant="outline">
+                                            {row.doc_type_label}
+                                        </Badge>
+                                        <span className="flex-1" />
+                                        <span>
+                                            {formatEUR(row.gross_effective)}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            fällig: {formatEUR(row.due_now)}
+                                        </span>
+                                        <Badge variant="secondary">
+                                            {row.status_label}
+                                        </Badge>
+                                    </Link>
+                                    {canManageInvoices && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={`Rechnung ${row.number} vom Projekt lösen`}
+                                            title="Zuordnung entfernen"
+                                            onClick={() =>
+                                                router.delete(
+                                                    `/projects/${project.id}/invoices`,
+                                                    {
+                                                        data: {
+                                                            type: 'outgoing',
+                                                            invoice_id: row.id,
+                                                        },
+                                                        preserveScroll: true,
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            <Unlink className="size-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             ))}
-                            {openItems.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Rechnungen.</p>}
+                            {openItems.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Noch keine Rechnungen.
+                                </p>
+                            )}
+                            {canManageInvoices && (
+                                <AssignInvoiceForm
+                                    projectId={project.id}
+                                    type="outgoing"
+                                    options={assignableOutgoing}
+                                    placeholder="Bestehende Rechnung wählen"
+                                />
+                            )}
                         </div>
                     </>
                 )}
@@ -320,18 +524,82 @@ export default function ProjectsShow({
                 {canViewFinancials && incomingInvoices !== null && (
                     <>
                         <Separator />
-                        <Heading variant="small" title="Eingangsrechnungen" description="Kosten dieses Projekts" />
+                        <div className="flex max-w-3xl items-center justify-between">
+                            <Heading
+                                variant="small"
+                                title="Eingangsrechnungen"
+                                description="Kosten dieses Projekts"
+                            />
+                            {canManageInvoices && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link
+                                        href={`/incoming-invoices/create?project=${project.id}`}
+                                    >
+                                        <Plus className="size-4" />
+                                        Neu erfassen
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
                         <div className="grid max-w-3xl gap-2">
                             {incomingInvoices.map((row) => (
-                                <Link key={row.id} href={`/incoming-invoices/${row.id}/edit`} className="flex items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border">
-                                    <span className="font-medium">{row.supplier}</span>
-                                    <span className="text-muted-foreground">{row.supplier_invoice_no}</span>
-                                    <span className="flex-1" />
-                                    <span>{formatEUR(row.gross)}</span>
-                                    <Badge variant="secondary">{row.payment_status_label}</Badge>
-                                </Link>
+                                <div
+                                    key={row.id}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Link
+                                        href={`/incoming-invoices/${row.id}/edit`}
+                                        className="flex flex-1 items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
+                                    >
+                                        <span className="font-medium">
+                                            {row.supplier}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {row.supplier_invoice_no}
+                                        </span>
+                                        <span className="flex-1" />
+                                        <span>{formatEUR(row.gross)}</span>
+                                        <Badge variant="secondary">
+                                            {row.payment_status_label}
+                                        </Badge>
+                                    </Link>
+                                    {canManageInvoices && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={`Eingangsrechnung ${row.supplier_invoice_no ?? row.id} vom Projekt lösen`}
+                                            title="Zuordnung entfernen"
+                                            onClick={() =>
+                                                router.delete(
+                                                    `/projects/${project.id}/invoices`,
+                                                    {
+                                                        data: {
+                                                            type: 'incoming',
+                                                            invoice_id: row.id,
+                                                        },
+                                                        preserveScroll: true,
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            <Unlink className="size-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             ))}
-                            {incomingInvoices.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Eingangsrechnungen.</p>}
+                            {incomingInvoices.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Noch keine Eingangsrechnungen.
+                                </p>
+                            )}
+                            {canManageInvoices && (
+                                <AssignInvoiceForm
+                                    projectId={project.id}
+                                    type="incoming"
+                                    options={assignableIncoming}
+                                    placeholder="Bestehende Eingangsrechnung wählen"
+                                />
+                            )}
                         </div>
                     </>
                 )}
@@ -376,7 +644,11 @@ function FigureTile({
             >
                 {value}
             </div>
-            {hint && <div className="text-xs text-amber-600 dark:text-amber-400">{hint}</div>}
+            {hint && (
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                    {hint}
+                </div>
+            )}
         </div>
     );
 }
@@ -391,98 +663,243 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 }
 
 function AddAppointmentForm({ projectId }: { projectId: number }) {
-    const { data, setData, post, processing, errors, reset } = useForm({ label: '', on_date: '' });
+    const { data, setData, post, processing, errors, reset } = useForm({
+        label: '',
+        on_date: '',
+    });
 
     return (
         <form
             className="flex max-w-xl items-end gap-3"
             onSubmit={(event) => {
                 event.preventDefault();
-                post(`/projects/${projectId}/appointments`, { preserveScroll: true, onSuccess: () => reset() });
+                post(`/projects/${projectId}/appointments`, {
+                    preserveScroll: true,
+                    onSuccess: () => reset(),
+                });
             }}
         >
             <div className="grid flex-1 gap-2">
                 <Label htmlFor="appointment-label">Termin</Label>
-                <Input id="appointment-label" value={data.label} onChange={(e) => setData('label', e.target.value)} placeholder="z. B. Abnahme" required />
+                <Input
+                    id="appointment-label"
+                    value={data.label}
+                    onChange={(e) => setData('label', e.target.value)}
+                    placeholder="z. B. Abnahme"
+                    required
+                />
                 <InputError message={errors.label ?? errors.on_date} />
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="appointment-date">Datum</Label>
-                <Input id="appointment-date" type="date" value={data.on_date} onChange={(e) => setData('on_date', e.target.value)} required />
+                <Input
+                    id="appointment-date"
+                    type="date"
+                    value={data.on_date}
+                    onChange={(e) => setData('on_date', e.target.value)}
+                    required
+                />
             </div>
-            <Button type="submit" disabled={processing}>Hinzufügen</Button>
+            <Button type="submit" disabled={processing}>
+                Hinzufügen
+            </Button>
         </form>
     );
 }
 
-function AddChangeOrderForm({ projectId, showAmount }: { projectId: number; showAmount: boolean }) {
-    const { data, setData, post, processing, errors, reset } = useForm({ title: '', amount_net: '', status: 'requested' });
+function AddChangeOrderForm({
+    projectId,
+    showAmount,
+}: {
+    projectId: number;
+    showAmount: boolean;
+}) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        title: '',
+        amount_net: '',
+        status: 'requested',
+    });
 
     return (
         <form
             className="flex max-w-xl items-end gap-3"
             onSubmit={(event) => {
                 event.preventDefault();
-                post(`/projects/${projectId}/change-orders`, { preserveScroll: true, onSuccess: () => reset() });
+                post(`/projects/${projectId}/change-orders`, {
+                    preserveScroll: true,
+                    onSuccess: () => reset(),
+                });
             }}
         >
             <div className="grid flex-1 gap-2">
                 <Label htmlFor="change-order-title">Neuer Nachtrag</Label>
-                <Input id="change-order-title" value={data.title} onChange={(e) => setData('title', e.target.value)} required />
+                <Input
+                    id="change-order-title"
+                    value={data.title}
+                    onChange={(e) => setData('title', e.target.value)}
+                    required
+                />
                 <InputError message={errors.title ?? errors.amount_net} />
             </div>
             {showAmount && (
                 <div className="grid w-36 gap-2">
                     <Label htmlFor="change-order-amount">Netto (€)</Label>
-                    <Input id="change-order-amount" type="number" step="0.01" min={0} value={data.amount_net} onChange={(e) => setData('amount_net', e.target.value)} />
+                    <Input
+                        id="change-order-amount"
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={data.amount_net}
+                        onChange={(e) => setData('amount_net', e.target.value)}
+                    />
                 </div>
             )}
-            <Button type="submit" disabled={processing}>Hinzufügen</Button>
+            <Button type="submit" disabled={processing}>
+                Hinzufügen
+            </Button>
         </form>
     );
 }
 
-function AddExternalOfferForm({ projectId, suppliers }: { projectId: number; suppliers: { id: number; name: string }[] }) {
-    const { data, setData, post, processing, errors, reset, transform } = useForm({
-        supplier_id: '',
-        title: '',
-        amount_net: '',
-        received_on: '',
-    });
+function AddExternalOfferForm({
+    projectId,
+    suppliers,
+}: {
+    projectId: number;
+    suppliers: { id: number; name: string }[];
+}) {
+    const { data, setData, post, processing, errors, reset, transform } =
+        useForm({
+            supplier_id: '',
+            title: '',
+            amount_net: '',
+            received_on: '',
+        });
 
     return (
         <form
             className="flex max-w-xl flex-wrap items-end gap-3"
             onSubmit={(event) => {
                 event.preventDefault();
-                transform((values) => ({ ...values, supplier_id: values.supplier_id ? Number(values.supplier_id) : null }));
-                post(`/projects/${projectId}/external-offers`, { preserveScroll: true, onSuccess: () => reset() });
+                transform((values) => ({
+                    ...values,
+                    supplier_id: values.supplier_id
+                        ? Number(values.supplier_id)
+                        : null,
+                }));
+                post(`/projects/${projectId}/external-offers`, {
+                    preserveScroll: true,
+                    onSuccess: () => reset(),
+                });
             }}
         >
             <div className="grid flex-1 gap-2">
                 <Label htmlFor="external-offer-title">Neues Fremdangebot</Label>
-                <Input id="external-offer-title" value={data.title} onChange={(e) => setData('title', e.target.value)} required />
-                <InputError message={errors.title ?? errors.supplier_id ?? errors.amount_net} />
+                <Input
+                    id="external-offer-title"
+                    value={data.title}
+                    onChange={(e) => setData('title', e.target.value)}
+                    required
+                />
+                <InputError
+                    message={
+                        errors.title ?? errors.supplier_id ?? errors.amount_net
+                    }
+                />
             </div>
             <div className="grid w-48 gap-2">
                 <Label>Lieferant</Label>
-                <Select value={data.supplier_id} onValueChange={(value) => setData('supplier_id', value)}>
+                <Select
+                    value={data.supplier_id}
+                    onValueChange={(value) => setData('supplier_id', value)}
+                >
                     <SelectTrigger aria-label="Lieferant">
                         <SelectValue placeholder="Wählen" />
                     </SelectTrigger>
                     <SelectContent>
                         {suppliers.map((supplier) => (
-                            <SelectItem key={supplier.id} value={String(supplier.id)}>{supplier.name}</SelectItem>
+                            <SelectItem
+                                key={supplier.id}
+                                value={String(supplier.id)}
+                            >
+                                {supplier.name}
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
             <div className="grid w-32 gap-2">
                 <Label htmlFor="external-offer-amount">Netto (€)</Label>
-                <Input id="external-offer-amount" type="number" step="0.01" min={0} value={data.amount_net} onChange={(e) => setData('amount_net', e.target.value)} />
+                <Input
+                    id="external-offer-amount"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={data.amount_net}
+                    onChange={(e) => setData('amount_net', e.target.value)}
+                />
             </div>
-            <Button type="submit" disabled={processing}>Hinzufügen</Button>
+            <Button type="submit" disabled={processing}>
+                Hinzufügen
+            </Button>
         </form>
+    );
+}
+
+/**
+ * Bestehende (noch unzugeordnete) Rechnung diesem Projekt zuordnen —
+ * die Projektzahlen rechnen sich daraus automatisch neu.
+ */
+function AssignInvoiceForm({
+    projectId,
+    type,
+    options,
+    placeholder,
+}: {
+    projectId: number;
+    type: 'incoming' | 'outgoing';
+    options: { id: number; label: string }[];
+    placeholder: string;
+}) {
+    const [selected, setSelected] = useState('');
+
+    if (options.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <Select value={selected} onValueChange={setSelected}>
+                <SelectTrigger className="flex-1" aria-label={placeholder}>
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                    {options.map((option) => (
+                        <SelectItem key={option.id} value={String(option.id)}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Button
+                type="button"
+                variant="outline"
+                disabled={!selected}
+                onClick={() => {
+                    router.post(
+                        `/projects/${projectId}/invoices`,
+                        { type, invoice_id: Number(selected) },
+                        {
+                            preserveScroll: true,
+                            onSuccess: () => setSelected(''),
+                        },
+                    );
+                }}
+            >
+                <Link2 className="size-4" />
+                Zuordnen
+            </Button>
+        </div>
     );
 }
 
