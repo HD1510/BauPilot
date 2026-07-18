@@ -16,7 +16,9 @@ use App\Support\Money\MoneyHelper;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -173,6 +175,29 @@ class IncomingInvoiceController extends Controller
         ])->save();
 
         return back()->with('success', 'Zahlung gebucht.');
+    }
+
+    /**
+     * Fehleingaben entfernen — samt Belegen und Rücklässen. Nur
+     * Admin/Büro (FinancialPolicy); Zahlstand ist hier direkt am Beleg
+     * erfasst, es hängen keine eigenen Zahlungsbuchungen daran.
+     */
+    public function destroy(IncomingInvoice $incomingInvoice): RedirectResponse
+    {
+        Gate::authorize('delete', $incomingInvoice);
+
+        DB::transaction(function () use ($incomingInvoice): void {
+            foreach ($incomingInvoice->documents as $document) {
+                Storage::disk('documents')->delete($document->path);
+                $document->delete();
+            }
+
+            $incomingInvoice->retentions()->delete();
+            $incomingInvoice->delete();
+        });
+
+        return redirect()->route('incoming-invoices.index')
+            ->with('success', 'Eingangsrechnung wurde gelöscht.');
     }
 
     public function toggleChecked(IncomingInvoice $incomingInvoice): RedirectResponse

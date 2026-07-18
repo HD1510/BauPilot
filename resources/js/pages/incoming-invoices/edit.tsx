@@ -1,17 +1,16 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, CircleDashed } from 'lucide-react';
-import { DocumentsSection  } from '@/components/documents-section';
-import type {DocumentItem} from '@/components/documents-section';
+import { CheckCircle2, CircleDashed, Trash2 } from 'lucide-react';
+import { DocumentsSection } from '@/components/documents-section';
+import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import {
-    IncomingInvoiceForm
-    
-    
-    
-    
+import { IncomingInvoiceForm } from '@/components/invoicing/incoming-invoice-form';
+import type {
+    IncomingInvoiceFormValues,
+    Option,
+    ProjectOption,
+    SupplierOption,
 } from '@/components/invoicing/incoming-invoice-form';
-import type {IncomingInvoiceFormValues, Option, ProjectOption, SupplierOption} from '@/components/invoicing/incoming-invoice-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +45,9 @@ export default function IncomingInvoicesEdit({
 }: Props) {
     return (
         <>
-            <Head title={`Eingangsrechnung ${invoice.supplier_invoice_no ?? invoice.id}`} />
+            <Head
+                title={`Eingangsrechnung ${invoice.supplier_invoice_no ?? invoice.id}`}
+            />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <div className="flex items-center justify-between">
                     <Heading
@@ -54,12 +55,18 @@ export default function IncomingInvoicesEdit({
                         description={`Brutto ${formatEUR(invoice.gross)}${invoice.paid_on ? ` · bezahlt am ${formatDate(invoice.paid_on)} (${formatEUR(invoice.paid_amount)})` : ''}`}
                     />
                     <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{invoice.payment_status_label}</Badge>
+                        <Badge variant="secondary">
+                            {invoice.payment_status_label}
+                        </Badge>
                         {canWrite && (
                             <Button
                                 variant="outline"
                                 onClick={() =>
-                                    router.patch(`/incoming-invoices/${invoice.id}/checked`, {}, { preserveScroll: true })
+                                    router.patch(
+                                        `/incoming-invoices/${invoice.id}/checked`,
+                                        {},
+                                        { preserveScroll: true },
+                                    )
                                 }
                             >
                                 {invoice.checked ? (
@@ -75,11 +82,35 @@ export default function IncomingInvoicesEdit({
                                 )}
                             </Button>
                         )}
+                        {canWrite && (
+                            <Button
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => {
+                                    if (
+                                        window.confirm(
+                                            'Diese Eingangsrechnung samt Belegen endgültig löschen?',
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/incoming-invoices/${invoice.id}`,
+                                        );
+                                    }
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Löschen
+                            </Button>
+                        )}
                     </div>
                 </div>
 
                 {canWrite && invoice.payment_status !== 'paid' && (
-                    <PayForm invoiceId={invoice.id} gross={invoice.gross} skontoAmount={invoice.skonto_amount} />
+                    <PayForm
+                        invoiceId={invoice.id}
+                        gross={invoice.gross}
+                        skontoAmount={invoice.skonto_amount}
+                    />
                 )}
 
                 <Separator />
@@ -132,19 +163,40 @@ function PayForm({
             className="flex max-w-xl items-end gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
             onSubmit={(event) => {
                 event.preventDefault();
-                post(`/incoming-invoices/${invoiceId}/pay`, { preserveScroll: true });
+                post(`/incoming-invoices/${invoiceId}/pay`, {
+                    preserveScroll: true,
+                });
             }}
         >
             <div className="grid gap-2">
                 <Label htmlFor="pay-date">Zahldatum</Label>
-                <Input id="pay-date" type="date" value={data.paid_on} onChange={(e) => setData('paid_on', e.target.value)} required />
+                <Input
+                    id="pay-date"
+                    type="date"
+                    value={data.paid_on}
+                    onChange={(e) => setData('paid_on', e.target.value)}
+                    required
+                />
             </div>
             <div className="grid flex-1 gap-2">
-                <Label htmlFor="pay-amount">Gezahlter Betrag (€{skontoAmount ? ', Vorschlag mit Skonto' : ''})</Label>
-                <Input id="pay-amount" type="number" step="0.01" min="0.01" value={data.paid_amount} onChange={(e) => setData('paid_amount', e.target.value)} required />
+                <Label htmlFor="pay-amount">
+                    Gezahlter Betrag (€
+                    {skontoAmount ? ', Vorschlag mit Skonto' : ''})
+                </Label>
+                <Input
+                    id="pay-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={data.paid_amount}
+                    onChange={(e) => setData('paid_amount', e.target.value)}
+                    required
+                />
                 <InputError message={errors.paid_amount ?? errors.paid_on} />
             </div>
-            <Button type="submit" disabled={processing}>Zahlung buchen</Button>
+            <Button type="submit" disabled={processing}>
+                Zahlung buchen
+            </Button>
         </form>
     );
 }
@@ -152,6 +204,9 @@ function PayForm({
 IncomingInvoicesEdit.layout = ({ invoice }: Props) => ({
     breadcrumbs: [
         { title: 'Eingangsrechnungen', href: '/incoming-invoices' },
-        { title: invoice.supplier_invoice_no ?? `#${invoice.id}`, href: `/incoming-invoices/${invoice.id}/edit` },
+        {
+            title: invoice.supplier_invoice_no ?? `#${invoice.id}`,
+            href: `/incoming-invoices/${invoice.id}/edit`,
+        },
     ],
 });

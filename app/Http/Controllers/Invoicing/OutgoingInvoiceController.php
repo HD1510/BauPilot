@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -121,6 +122,47 @@ class OutgoingInvoiceController extends Controller
 
         return redirect()->route('outgoing-invoices.show', $invoice)
             ->with('success', "Rechnung {$invoice->number} wurde angelegt.");
+    }
+
+    /**
+     * Fehleingaben entfernen. Sobald etwas gebucht ist (Zahlungen,
+     * Rücklässe, Gutschriften), ist der richtige Weg der Storno — eine
+     * ausgestellte Rechnung verschwindet nicht einfach. Die entstehende
+     * Lücke im Nummernkreis meldet die Lückenprüfung am Dashboard.
+     */
+    public function destroy(OutgoingInvoice $outgoingInvoice): RedirectResponse
+    {
+        Gate::authorize('delete', $outgoingInvoice);
+
+        if ($outgoingInvoice->payments()->exists()) {
+            return back()->withErrors(['delete' => 'Zu dieser Rechnung sind Zahlungen gebucht — bitte stattdessen stornieren (Gutschrift/Storno).']);
+        }
+
+        if ($outgoingInvoice->retentions()->exists()) {
+            return back()->withErrors(['delete' => 'Zu dieser Rechnung bestehen Rücklässe — bitte zuerst klären bzw. stornieren.']);
+        }
+
+        if ($outgoingInvoice->adjustments()->exists()) {
+            return back()->withErrors(['delete' => 'Zu dieser Rechnung existieren Gutschriften/Storni — diese zuerst löschen.']);
+        }
+
+        $originalId = $outgoingInvoice->original_invoice_id;
+
+        DB::transaction(function () use ($outgoingInvoice): void {
+            foreach ($outgoingInvoice->documents as $document) {
+                Storage::disk('documents')->delete($document->path);
+                $document->delete();
+            }
+
+            // Teilrechnungen einer gelöschten Schlussrechnung werden
+            // wieder frei (DB: final_invoice_id nullOnDelete).
+            $outgoingInvoice->delete();
+        });
+
+        // Eine gelöschte Gutschrift führt zurück zur Originalrechnung.
+        return $originalId !== null
+            ? redirect()->route('outgoing-invoices.show', $originalId)->with('success', 'Beleg wurde gelöscht.')
+            : redirect()->route('outgoing-invoices.index')->with('success', 'Rechnung wurde gelöscht.');
     }
 
     public function show(OutgoingInvoice $outgoingInvoice, InvoiceLedger $ledger): Response|RedirectResponse

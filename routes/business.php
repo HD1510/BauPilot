@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('outgoing-invoices/{outgoing_invoice}/retentions', [InvoiceActionController::class, 'storeRetention'])->name('outgoing-invoices.retentions.store');
     Route::post('outgoing-invoices/{outgoing_invoice}/retentions/{retention}/release', [InvoiceActionController::class, 'releaseRetention'])->name('outgoing-invoices.retentions.release');
     Route::post('outgoing-invoices/{outgoing_invoice}/adjustments', [InvoiceActionController::class, 'storeAdjustment'])->name('outgoing-invoices.adjustments.store');
+    Route::delete('outgoing-invoices/{outgoing_invoice}', [OutgoingInvoiceController::class, 'destroy'])->name('outgoing-invoices.destroy');
 
     // Beleg-Scan (Leiter: E-Rechnung → Textanalyse → KI) je Belegart,
     // dazu Partner-Anlage aus erkannten Daten
@@ -76,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('incoming-invoices/{incoming_invoice}', [IncomingInvoiceController::class, 'update'])->name('incoming-invoices.update');
     Route::post('incoming-invoices/{incoming_invoice}/pay', [IncomingInvoiceController::class, 'pay'])->name('incoming-invoices.pay');
     Route::patch('incoming-invoices/{incoming_invoice}/checked', [IncomingInvoiceController::class, 'toggleChecked'])->name('incoming-invoices.checked');
+    Route::delete('incoming-invoices/{incoming_invoice}', [IncomingInvoiceController::class, 'destroy'])->name('incoming-invoices.destroy');
 
     // Zeiterfassung (M8): Schnellerfassung je Projekt
     Route::get('time-entries', [TimeEntryController::class, 'index'])->name('time-entries.index');
