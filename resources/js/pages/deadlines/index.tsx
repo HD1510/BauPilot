@@ -4,21 +4,18 @@ import type { DeadlineRow } from '@/components/deadlines/deadline-list-row';
 import Heading from '@/components/heading';
 
 export default function DeadlinesIndex({
+    appointments,
     deadlines,
     horizonDays,
 }: {
+    appointments: DeadlineRow[];
     deadlines: DeadlineRow[];
     horizonDays: number;
 }) {
-    // Termine (Kalender) getrennt von Fristen; Überfälliges zuoberst.
-    const appointments = deadlines.filter(
-        (deadline) => deadline.kind === 'appointment',
-    );
-    const rest = deadlines.filter(
-        (deadline) => deadline.kind !== 'appointment',
-    );
-    const overdue = rest.filter((deadline) => deadline.overdue);
-    const upcoming = rest.filter((deadline) => !deadline.overdue);
+    // Die Termin/Fristen-Trennung kommt vom Server (eine Regel, eine
+    // Stelle); hier nur noch Überfälliges zuoberst.
+    const overdue = deadlines.filter((deadline) => deadline.overdue);
+    const upcoming = deadlines.filter((deadline) => !deadline.overdue);
 
     return (
         <>

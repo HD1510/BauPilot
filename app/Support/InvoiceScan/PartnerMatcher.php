@@ -40,8 +40,11 @@ class PartnerMatcher
 
         $similar = $this->finder->findSimilar($modelClass, $name, $exact?->id);
 
+        // Ein Rutsch statt fünf Einzelabfragen (N+1).
+        $partners = $modelClass::query()->whereIn('id', $similar->pluck('id'))->get()->keyBy('id');
+
         foreach ($similar as $candidate) {
-            $partner = $modelClass::query()->find($candidate['id']);
+            $partner = $partners->get($candidate['id']);
 
             if ($partner !== null) {
                 $matches[] = $this->entry($partner, $candidate['similarity']);
@@ -70,7 +73,9 @@ class PartnerMatcher
             $query->where('active', true);
         }
 
-        foreach ($query->get() as $partner) {
+        // Nur die Spalten fürs Namens-Matching laden — nicht jede Zeile
+        // komplett hydrieren.
+        foreach ($query->get(['id', 'name', 'normalized_name']) as $partner) {
             $name = (string) $partner->getAttribute('normalized_name');
 
             // Zu kurze Namen träfen überall („bau") — mindestens 5 Zeichen.

@@ -92,3 +92,53 @@ test('erfassungsseiten übernehmen das projekt aus der projektseite', function (
     $this->get("/outgoing-invoices/create?project={$project->id}")
         ->assertInertia(fn ($page) => $page->where('preselectedProjectId', $project->id));
 });
+
+test('umhängen fremd zugeordneter rechnungen und gutschriften wird abgelehnt', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $projectA = Project::factory()->create(['company_id' => $company->id]);
+    $projectB = Project::factory()->create(['company_id' => $company->id]);
+    $assigned = IncomingInvoice::factory()->create(['company_id' => $company->id, 'project_id' => $projectB->id]);
+    $original = OutgoingInvoice::factory()->create(['company_id' => $company->id, 'project_id' => null]);
+    $credit = OutgoingInvoice::factory()->create([
+        'company_id' => $company->id,
+        'project_id' => null,
+        'original_invoice_id' => $original->id,
+    ]);
+    app(CompanyContext::class)->clear();
+
+    // Bereits Projekt B zugeordnet: erst dort lösen.
+    $this->post("/projects/{$projectA->id}/invoices", [
+        'type' => 'incoming',
+        'invoice_id' => $assigned->id,
+    ])->assertSessionHasErrors('invoice_id');
+
+    expect($assigned->refresh()->project_id)->toBe($projectB->id);
+
+    // Gutschriften folgen ihrer Originalrechnung.
+    app(CompanyContext::class)->clear();
+    $this->post("/projects/{$projectA->id}/invoices", [
+        'type' => 'outgoing',
+        'invoice_id' => $credit->id,
+    ])->assertSessionHasErrors('invoice_id');
+
+    expect($credit->refresh()->project_id)->toBeNull();
+});
+
+test('archivierter kunde lässt die projektseite nicht umfallen', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $project = Project::factory()->create(['company_id' => $company->id]);
+    $customer = Customer::factory()->create(['company_id' => $company->id, 'name' => 'Alt Kunde GmbH']);
+    OutgoingInvoice::factory()->create([
+        'company_id' => $company->id,
+        'customer_id' => $customer->id,
+        'project_id' => null,
+    ]);
+    $customer->delete(); // Soft delete — Kunde archiviert.
+    app(CompanyContext::class)->clear();
+
+    $this->get("/projects/{$project->id}")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->count('assignableOutgoing', 1));
+});

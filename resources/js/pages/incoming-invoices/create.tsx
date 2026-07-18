@@ -8,7 +8,10 @@ import type {
     ProjectOption,
     SupplierOption,
 } from '@/components/invoicing/incoming-invoice-form';
-import { InvoiceScanCard } from '@/components/invoicing/invoice-scan-card';
+import {
+    InvoiceScanCard,
+    prefillString,
+} from '@/components/invoicing/invoice-scan-card';
 import type {
     ChosenPartner,
     ScanResult,
@@ -19,9 +22,6 @@ type ScanState = {
     token: string;
     invoice: Partial<IncomingInvoiceFormValues>;
 };
-
-const str = (value: unknown): string | undefined =>
-    typeof value === 'string' && value !== '' ? value : undefined;
 
 export default function IncomingInvoicesCreate({
     suppliers,
@@ -62,11 +62,12 @@ export default function IncomingInvoicesCreate({
             token: result.scan_token,
             invoice: {
                 supplier_id: supplier?.id ?? null,
-                supplier_invoice_no: str(prefill.supplier_invoice_no) ?? null,
-                invoice_date: str(prefill.invoice_date),
+                supplier_invoice_no:
+                    prefillString(prefill.supplier_invoice_no) ?? null,
+                invoice_date: prefillString(prefill.invoice_date),
                 amount_mode: prefill.amount_mode === 'gross' ? 'gross' : 'net',
-                amount: str(prefill.amount),
-                vat_rate: str(prefill.vat_rate),
+                amount: prefillString(prefill.amount),
+                vat_rate: prefillString(prefill.vat_rate),
                 reverse_charge: prefill.reverse_charge === true,
                 // Nur vorbelegen, wenn die Kostenart auch wählbar ist —
                 // sonst zeigt das Pflichtfeld sichtbar „wählen".
@@ -77,10 +78,10 @@ export default function IncomingInvoicesCreate({
                     ? (supplier?.default_cost_type_id ?? null)
                     : null,
                 project_id: preselectedProjectId,
-                subject: str(prefill.subject) ?? null,
-                payment_due_on: str(prefill.payment_due_on) ?? null,
-                skonto_amount: str(prefill.skonto_amount) ?? null,
-                skonto_until: str(prefill.skonto_until) ?? null,
+                subject: prefillString(prefill.subject) ?? null,
+                payment_due_on: prefillString(prefill.payment_due_on) ?? null,
+                skonto_amount: prefillString(prefill.skonto_amount) ?? null,
+                skonto_until: prefillString(prefill.skonto_until) ?? null,
             },
         });
     };

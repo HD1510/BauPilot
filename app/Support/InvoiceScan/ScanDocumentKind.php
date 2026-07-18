@@ -29,9 +29,4 @@ enum ScanDocumentKind: string
     {
         return $this->partnerIsSeller() ? Supplier::class : Customer::class;
     }
-
-    public function partnerLabel(): string
-    {
-        return $this->partnerIsSeller() ? 'Lieferant' : 'Kunde';
-    }
 }

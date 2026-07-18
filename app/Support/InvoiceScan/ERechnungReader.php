@@ -17,7 +17,7 @@ use Throwable;
  */
 class ERechnungReader
 {
-    public function read(string $pdfContent, ScanDocumentKind $kind = ScanDocumentKind::IncomingInvoice): ?ScannedInvoice
+    public function read(string $pdfContent, ScanDocumentKind $kind): ?ScannedInvoice
     {
         try {
             $reader = ZugferdDocumentPdfReader::readAndGuessFromContent($pdfContent);

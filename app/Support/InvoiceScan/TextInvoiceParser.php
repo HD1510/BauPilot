@@ -18,13 +18,20 @@ class TextInvoiceParser
 {
     public static function parse(
         string $text,
-        ScanDocumentKind $kind = ScanDocumentKind::IncomingInvoice,
+        ScanDocumentKind $kind,
         ?string $knownPartnerName = null,
         ?string $ownVatId = null,
         ?string $ownCompanyName = null,
     ): ScannedInvoice {
-        $docDate = self::docDate($text);
+        $docDate = self::docDate($text, $kind);
         $skonto = self::skonto($text);
+
+        // Die Angebots-/Auftragssumme ist nur bei Angeboten der gesuchte
+        // Betrag — auf Rechnungen wäre sie die (viel größere) Gesamtsumme
+        // des dahinterliegenden Auftrags.
+        $netLabels = $kind === ScanDocumentKind::Offer
+            ? 'Netto(?:betrag|summe)?|Zwischensumme|(?:Angebots|Auftrags)summe(?:\s+netto)?'
+            : 'Netto(?:betrag|summe)?|Zwischensumme';
 
         return new ScannedInvoice(
             partnerName: $knownPartnerName ?? self::partnerNameHeuristic($text, $kind, $ownCompanyName),
@@ -36,7 +43,7 @@ class TextInvoiceParser
             skontoDays: $skonto['days'],
             docNumber: self::docNumber($text, $kind),
             docDate: $docDate,
-            net: self::amount($text, 'Netto(?:betrag|summe)?|Zwischensumme|(?:Angebots|Auftrags)summe(?:\s+netto)?'),
+            net: self::amount($text, $netLabels),
             vatRate: self::vatRate($text),
             gross: self::amount($text, 'Gesamtbetrag|Rechnungsbetrag|Brutto(?:betrag)?|Endbetrag|Gesamt|zu\s+zahlen(?:der\s+Betrag)?'),
             reverseCharge: self::reverseCharge($text),
@@ -140,7 +147,8 @@ class TextInvoiceParser
         $patterns = $kind === ScanDocumentKind::Offer
             ? [
                 '/Angebots?\s?(?:-\s?)?(?:Nr|Nummer)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
-                '/Angebot\s+(?:Nr\.?\s*)?([A-Za-z0-9][A-Za-z0-9\/\-._]{1,29})/iu',
+                // Ohne Ziffer keine Nummer — sonst finge „Angebot vom …" das Wort „vom".
+                '/Angebot\s+(?:Nr\.?\s*)?((?=[A-Za-z0-9\/\-._]{0,29}\d)[A-Za-z0-9][A-Za-z0-9\/\-._]{1,29})/iu',
             ]
             : [
                 '/Rechnungs?\s?(?:-\s?)?(?:Nr|Nummer)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-._]{0,29})/iu',
@@ -156,10 +164,14 @@ class TextInvoiceParser
         return null;
     }
 
-    private static function docDate(string $text): ?string
+    private static function docDate(string $text, ScanDocumentKind $kind): ?string
     {
+        // Je Belegart das eigene Datum — auf Rechnungen darf ein
+        // erwähntes „Angebotsdatum" das Rechnungsdatum nicht schlagen.
         $patterns = [
-            '/(?:Rechnungs|Angebots)datum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
+            $kind === ScanDocumentKind::Offer
+                ? '/Angebotsdatum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu'
+                : '/Rechnungsdatum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
             '/\bDatum\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2})/iu',
         ];
 
@@ -214,12 +226,17 @@ class TextInvoiceParser
 
     /**
      * Kein bekannter Partner im Text: die ersten Zeilen nach einer Firma
-     * mit Rechtsform absuchen — nur ein Vorschlag, kein Fakt. Auf
-     * eigenen Belegen steht der eigene Briefkopf oben; Zeilen mit dem
-     * eigenen Firmennamen werden übersprungen.
+     * mit Rechtsform absuchen — nur ein Vorschlag, kein Fakt. Das gilt
+     * nur für Eingangsrechnungen (der Briefkopf gehört dem Aussteller);
+     * auf eigenen Belegen steht oben die EIGENE Firma — dort wäre jede
+     * Raterei falsch, der Empfänger wird von Hand gewählt.
      */
     private static function partnerNameHeuristic(string $text, ScanDocumentKind $kind, ?string $ownCompanyName): ?string
     {
+        if (! $kind->partnerIsSeller()) {
+            return null;
+        }
+
         $lines = array_values(array_filter(array_map('trim', explode("\n", $text)), fn (string $line): bool => $line !== ''));
         $ownNormalized = $ownCompanyName !== null ? NameNormalizer::normalize($ownCompanyName) : null;
 
@@ -232,10 +249,6 @@ class TextInvoiceParser
                 return trim($m[1]);
             }
         }
-
-        // Beim Empfänger-Fall keine weitere Raterei — Privatkunden haben
-        // keine Rechtsform, das entscheidet besser ein Mensch.
-        unset($kind);
 
         return null;
     }

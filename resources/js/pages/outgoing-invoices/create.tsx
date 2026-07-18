@@ -2,7 +2,10 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { InvoiceScanCard } from '@/components/invoicing/invoice-scan-card';
+import {
+    InvoiceScanCard,
+    prefillString,
+} from '@/components/invoicing/invoice-scan-card';
 import type {
     ChosenPartner,
     ScanResult,
@@ -41,9 +44,6 @@ const docTypes = [
     { value: 'partial', label: 'Teilrechnung' },
     { value: 'final', label: 'Schlussrechnung (Restbetrag)' },
 ];
-
-const str = (value: unknown): string | undefined =>
-    typeof value === 'string' && value !== '' ? value : undefined;
 
 export default function OutgoingInvoicesCreate({
     customers,
@@ -88,13 +88,13 @@ export default function OutgoingInvoicesCreate({
             key: (scan?.key ?? 0) + 1,
             token: result.scan_token,
             initial: {
-                number: str(prefill.number),
-                invoice_date: str(prefill.invoice_date),
-                due_on: str(prefill.due_on),
+                number: prefillString(prefill.number),
+                invoice_date: prefillString(prefill.invoice_date),
+                due_on: prefillString(prefill.due_on),
                 customer_id: customer ? String(customer.id) : undefined,
                 amount_mode: prefill.amount_mode === 'gross' ? 'gross' : 'net',
-                amount: str(prefill.amount),
-                vat_rate: str(prefill.vat_rate),
+                amount: prefillString(prefill.amount),
+                vat_rate: prefillString(prefill.vat_rate),
             },
         });
     };

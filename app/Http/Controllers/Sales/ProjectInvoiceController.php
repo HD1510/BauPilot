@@ -31,6 +31,18 @@ class ProjectInvoiceController extends Controller
 
         Gate::authorize('update', $invoice);
 
+        // Umhängen nur bewusst: eine bereits zugeordnete Rechnung muss
+        // erst gelöst werden — sonst verschieben sich Projektzahlen still.
+        if ($invoice->project_id !== null && $invoice->project_id !== $project->id) {
+            return back()->withErrors(['invoice_id' => 'Diese Rechnung ist bereits einem anderen Projekt zugeordnet. Bitte dort zuerst lösen.']);
+        }
+
+        // Gutschriften/Storni hängen an ihrer Originalrechnung und werden
+        // nicht einzeln zugeordnet.
+        if ($invoice instanceof OutgoingInvoice && $invoice->original_invoice_id !== null) {
+            return back()->withErrors(['invoice_id' => 'Gutschriften und Storni folgen ihrer Originalrechnung.']);
+        }
+
         $invoice->forceFill(['project_id' => $project->id])->save();
 
         return back()->with('success', 'Rechnung wurde dem Projekt zugeordnet.');

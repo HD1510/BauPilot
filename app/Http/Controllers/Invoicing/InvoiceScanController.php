@@ -33,25 +33,31 @@ use RuntimeException;
  */
 class InvoiceScanController extends Controller
 {
-    public function incoming(Request $request, InvoiceScanPipeline $pipeline, PartnerMatcher $matcher, CompanyContext $context): JsonResponse
+    public function __construct(
+        private InvoiceScanPipeline $pipeline,
+        private PartnerMatcher $matcher,
+        private CompanyContext $context,
+    ) {}
+
+    public function incoming(Request $request): JsonResponse
     {
         Gate::authorize('create', IncomingInvoice::class);
 
-        return $this->scan($request, $pipeline, $matcher, $context, ScanDocumentKind::IncomingInvoice);
+        return $this->scan($request, ScanDocumentKind::IncomingInvoice);
     }
 
-    public function outgoing(Request $request, InvoiceScanPipeline $pipeline, PartnerMatcher $matcher, CompanyContext $context): JsonResponse
+    public function outgoing(Request $request): JsonResponse
     {
         Gate::authorize('create', OutgoingInvoice::class);
 
-        return $this->scan($request, $pipeline, $matcher, $context, ScanDocumentKind::OutgoingInvoice);
+        return $this->scan($request, ScanDocumentKind::OutgoingInvoice);
     }
 
-    public function offer(Request $request, InvoiceScanPipeline $pipeline, PartnerMatcher $matcher, CompanyContext $context): JsonResponse
+    public function offer(Request $request): JsonResponse
     {
         Gate::authorize('create', Offer::class);
 
-        return $this->scan($request, $pipeline, $matcher, $context, ScanDocumentKind::Offer);
+        return $this->scan($request, ScanDocumentKind::Offer);
     }
 
     /**
@@ -61,8 +67,9 @@ class InvoiceScanController extends Controller
     {
         Gate::authorize('create', Supplier::class);
 
+        // Gleiche Grenzen wie im Lieferantenstamm (SupplierRequest).
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:200'],
+            'name' => ['required', 'string', 'max:255'],
             'payment_target_days' => ['required', 'integer', 'between:0,365'],
             'skonto_percent' => ['nullable', 'decimal:0,2', 'between:0,100'],
             'skonto_days' => ['nullable', 'integer', 'between:0,365'],
@@ -86,10 +93,12 @@ class InvoiceScanController extends Controller
     {
         Gate::authorize('create', Customer::class);
 
+        // Gleiche Grenzen wie im Kundenstamm (CustomerRequest) — der
+        // Scan-Weg darf nicht strenger sein als die Stammdatenpflege.
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:200'],
+            'name' => ['required', 'string', 'max:255'],
             'payment_target_days' => ['required', 'integer', 'between:0,365'],
-            'vat_id' => ['nullable', 'string', 'max:30'],
+            'vat_id' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [], ['name' => 'Name', 'payment_target_days' => 'Zahlungsziel']);
 
@@ -103,7 +112,7 @@ class InvoiceScanController extends Controller
         ], 201);
     }
 
-    private function scan(Request $request, InvoiceScanPipeline $pipeline, PartnerMatcher $matcher, CompanyContext $context, ScanDocumentKind $kind): JsonResponse
+    private function scan(Request $request, ScanDocumentKind $kind): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:20480'],
@@ -113,18 +122,18 @@ class InvoiceScanController extends Controller
         $file = $request->file('file');
 
         try {
-            ['invoice' => $scan, 'source' => $source] = $pipeline->run($file, $kind);
+            ['invoice' => $scan, 'source' => $source] = $this->pipeline->run($file, $kind);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $token = $this->stash($file, $context->requireId());
+        $token = $this->stash($file, $this->context->requireId());
 
         return response()->json([
             'scan_token' => $token,
             'source' => $source,
             'extraction' => $scan->toArray(),
-            'matches' => $matcher->match($kind->partnerModel(), $scan->partnerName),
+            'matches' => $this->matcher->match($kind->partnerModel(), $scan->partnerName),
             'partner_proposal' => $this->partnerProposal($scan, $kind),
             'prefill' => $this->prefill($scan, $kind),
         ]);
@@ -194,19 +203,9 @@ class InvoiceScanController extends Controller
         $amountMode = $scan->net !== null ? 'net' : 'gross';
         $amount = $scan->net ?? $scan->gross;
         $date = $scan->docDate !== null ? CarbonImmutable::parse($scan->docDate) : null;
-
-        if ($kind === ScanDocumentKind::Offer) {
-            // Angebotssumme ist netto; nur Brutto erkannt → herausrechnen.
-            $net = $scan->net ?? ($scan->gross !== null
-                ? (float) MoneyHelper::fromGross($scan->gross, $vatRate ?? 20.0)['net']
-                : null);
-
-            return [
-                'offer_number' => $scan->docNumber,
-                'offer_amount_net' => $net !== null ? MoneyHelper::round($net) : null,
-                'description' => $scan->subject,
-            ];
-        }
+        $dueOn = $date !== null && $scan->paymentTargetDays !== null
+            ? $date->addDays($scan->paymentTargetDays)->toDateString()
+            : null;
 
         $base = [
             'invoice_date' => $scan->docDate,
@@ -217,32 +216,36 @@ class InvoiceScanController extends Controller
             'subject' => $scan->subject,
         ];
 
-        if ($kind === ScanDocumentKind::OutgoingInvoice) {
-            return [
+        $skontoAmount = $scan->skontoPercent !== null && $scan->gross !== null
+            ? MoneyHelper::round($scan->gross * $scan->skontoPercent / 100)
+            : null;
+
+        // Angebotssumme ist netto; nur Brutto erkannt → herausrechnen.
+        $offerNet = $scan->net ?? ($scan->gross !== null
+            ? (float) MoneyHelper::fromGross($scan->gross, $vatRate ?? 20.0)['net']
+            : null);
+
+        // Exhaustiv je Belegart — eine neue Art zwingt hier zur Entscheidung.
+        return match ($kind) {
+            ScanDocumentKind::Offer => [
+                'offer_number' => $scan->docNumber,
+                'offer_amount_net' => $offerNet !== null ? MoneyHelper::round($offerNet) : null,
+                'description' => $scan->subject,
+            ],
+            ScanDocumentKind::OutgoingInvoice => [
                 ...$base,
                 'number' => $scan->docNumber,
-                'due_on' => $date !== null && $scan->paymentTargetDays !== null
-                    ? $date->addDays($scan->paymentTargetDays)->toDateString()
+                'due_on' => $dueOn,
+            ],
+            ScanDocumentKind::IncomingInvoice => [
+                ...$base,
+                'supplier_invoice_no' => $scan->docNumber,
+                'payment_due_on' => $dueOn,
+                'skonto_amount' => $skontoAmount,
+                'skonto_until' => $date !== null && $scan->skontoDays !== null && $skontoAmount !== null
+                    ? $date->addDays($scan->skontoDays)->toDateString()
                     : null,
-            ];
-        }
-
-        $skontoAmount = null;
-
-        if ($scan->skontoPercent !== null && $scan->gross !== null) {
-            $skontoAmount = MoneyHelper::round($scan->gross * $scan->skontoPercent / 100);
-        }
-
-        return [
-            ...$base,
-            'supplier_invoice_no' => $scan->docNumber,
-            'payment_due_on' => $date !== null && $scan->paymentTargetDays !== null
-                ? $date->addDays($scan->paymentTargetDays)->toDateString()
-                : null,
-            'skonto_amount' => $skontoAmount,
-            'skonto_until' => $date !== null && $scan->skontoDays !== null && $skontoAmount !== null
-                ? $date->addDays($scan->skontoDays)->toDateString()
-                : null,
-        ];
+            ],
+        };
     }
 }

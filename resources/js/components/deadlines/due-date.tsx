@@ -1,20 +1,5 @@
 import { cn } from '@/lib/utils';
 
-const MONTHS = [
-    'Jän',
-    'Feb',
-    'Mär',
-    'Apr',
-    'Mai',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Okt',
-    'Nov',
-    'Dez',
-];
-
 function daysFromToday(dueOn: string): number {
     const date = new Date(`${dueOn}T00:00:00`);
     const today = new Date();
@@ -79,7 +64,7 @@ export function DueDate({
                 {date.getDate()}
             </span>
             <span className="text-[10px] leading-tight uppercase">
-                {MONTHS[date.getMonth()]}
+                {date.toLocaleDateString('de-AT', { month: 'short' })}
             </span>
         </div>
     );

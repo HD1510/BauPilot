@@ -1,7 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import { InvoiceScanCard } from '@/components/invoicing/invoice-scan-card';
+import {
+    InvoiceScanCard,
+    prefillString,
+} from '@/components/invoicing/invoice-scan-card';
 import type {
     ChosenPartner,
     ScanResult,
@@ -12,9 +15,6 @@ import type {
     Option,
     StatusOption,
 } from '@/components/sales/offer-form';
-
-const str = (value: unknown): string | undefined =>
-    typeof value === 'string' && value !== '' ? value : undefined;
 
 export default function OffersCreate({
     customers,
@@ -49,9 +49,10 @@ export default function OffersCreate({
             token: result.scan_token,
             offer: {
                 customer_id: customer?.id ?? null,
-                offer_number: str(prefill.offer_number) ?? null,
-                offer_amount_net: str(prefill.offer_amount_net) ?? null,
-                description: str(prefill.description) ?? null,
+                offer_number: prefillString(prefill.offer_number) ?? null,
+                offer_amount_net:
+                    prefillString(prefill.offer_amount_net) ?? null,
+                description: prefillString(prefill.description) ?? null,
                 status: 'offered',
             },
         });

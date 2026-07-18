@@ -62,7 +62,10 @@ async function withStore<T>(
 }
 
 export async function pendingRequests(): Promise<QueuedRequest[]> {
-    return withStore('readonly', (store) => store.getAll() as IDBRequest<QueuedRequest[]>);
+    return withStore(
+        'readonly',
+        (store) => store.getAll() as IDBRequest<QueuedRequest[]>,
+    );
 }
 
 async function notify(): Promise<void> {
@@ -77,7 +80,7 @@ export function subscribePending(listener: Listener): () => void {
     return () => listeners.delete(listener);
 }
 
-function xsrfToken(): string {
+export function xsrfToken(): string {
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
 
     return match ? decodeURIComponent(match[1]) : '';
@@ -85,10 +88,16 @@ function xsrfToken(): string {
 
 async function refreshCsrf(): Promise<void> {
     // Jede Antwort einer Session-Route erneuert das XSRF-Cookie.
-    await fetch('/', { credentials: 'same-origin', headers: { Accept: 'text/html' } });
+    await fetch('/', {
+        credentials: 'same-origin',
+        headers: { Accept: 'text/html' },
+    });
 }
 
-async function send(url: string, payload: Record<string, unknown>): Promise<Response> {
+async function send(
+    url: string,
+    payload: Record<string, unknown>,
+): Promise<Response> {
     return fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
@@ -122,14 +131,29 @@ export async function submitOrQueue(
             await refreshCsrf();
             const retry = await send(url, payload);
 
-            return { queued: false, ok: retry.ok, status: retry.status, body: await retry.json().catch(() => null) };
+            return {
+                queued: false,
+                ok: retry.ok,
+                status: retry.status,
+                body: await retry.json().catch(() => null),
+            };
         }
 
-        return { queued: false, ok: response.ok, status: response.status, body: await response.json().catch(() => null) };
+        return {
+            queued: false,
+            ok: response.ok,
+            status: response.status,
+            body: await response.json().catch(() => null),
+        };
     } catch {
         // Netzfehler → Funkloch: sichtbar puffern.
         await withStore('readwrite', (store) =>
-            store.add({ url, payload, label, queuedAt: new Date().toISOString() }),
+            store.add({
+                url,
+                payload,
+                label,
+                queuedAt: new Date().toISOString(),
+            }),
         );
         await notify();
 
@@ -166,7 +190,8 @@ export async function flushQueue(): Promise<FlushSummary> {
 
                 if (response.status === 401 || response.status === 419) {
                     // Anmeldung abgelaufen: Queue anhalten, nichts verwerfen.
-                    summary.kept += items.length - summary.sent - summary.dropped.length;
+                    summary.kept +=
+                        items.length - summary.sent - summary.dropped.length;
                     break;
                 }
 
@@ -177,10 +202,13 @@ export async function flushQueue(): Promise<FlushSummary> {
                     summary.dropped.push(item.label);
                 }
 
-                await withStore('readwrite', (store) => store.delete(item.id as number));
+                await withStore('readwrite', (store) =>
+                    store.delete(item.id as number),
+                );
             } catch {
                 // Wieder offline: Rest bleibt stehen.
-                summary.kept += items.length - summary.sent - summary.dropped.length;
+                summary.kept +=
+                    items.length - summary.sent - summary.dropped.length;
                 break;
             }
         }
@@ -195,7 +223,9 @@ export async function flushQueue(): Promise<FlushSummary> {
 /**
  * Einmal beim App-Start aufrufen: synchronisiert bei Verbindung.
  */
-export function initOfflineQueue(onFlushed?: (summary: FlushSummary) => void): void {
+export function initOfflineQueue(
+    onFlushed?: (summary: FlushSummary) => void,
+): void {
     const run = () => {
         void flushQueue().then((summary) => {
             if (summary.sent > 0 || summary.dropped.length > 0) {

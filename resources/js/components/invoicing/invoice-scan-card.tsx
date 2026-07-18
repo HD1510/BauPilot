@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { xsrfToken } from '@/lib/offline-queue';
 import { saveFileAs, suggestedFileName } from '@/lib/save-file';
 
 export type ScanMatch = {
@@ -16,7 +17,40 @@ export type ScanMatch = {
     skonto_days: number | null;
 };
 
-export type ScanPrefill = Record<string, string | boolean | null>;
+/**
+ * Vorbefüllung je Belegart — die Schlüssel entsprechen den
+ * Formularfeldern (InvoiceScanController::prefill), alle optional.
+ */
+export type ScanPrefill = Partial<{
+    // Eingangsrechnung
+    supplier_invoice_no: string | null;
+    payment_due_on: string | null;
+    skonto_amount: string | null;
+    skonto_until: string | null;
+    // Ausgangsrechnung
+    number: string | null;
+    due_on: string | null;
+    // Angebot
+    offer_number: string | null;
+    offer_amount_net: string | null;
+    description: string | null;
+    // Gemeinsam (Rechnungen)
+    invoice_date: string | null;
+    amount_mode: 'net' | 'gross';
+    amount: string | null;
+    vat_rate: string | null;
+    reverse_charge: boolean;
+    subject: string | null;
+}>;
+
+/**
+ * Prefill-Wert als nichtleerer String — sonst undefined, damit die
+ * Formular-Defaults greifen.
+ */
+export const prefillString = (
+    value: string | boolean | null | undefined,
+): string | undefined =>
+    typeof value === 'string' && value !== '' ? value : undefined;
 
 export type PartnerProposal = {
     name: string | null;
@@ -48,12 +82,6 @@ export type ChosenPartner = {
     name: string;
     default_cost_type_id: number | null;
 };
-
-function xsrfToken(): string {
-    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-
-    return match ? decodeURIComponent(match[1]) : '';
-}
 
 const SOURCE_LABELS: Record<ScanResult['source'], string> = {
     e_rechnung: 'aus E-Rechnung (ZUGFeRD) — exakt',

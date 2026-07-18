@@ -32,7 +32,7 @@ class InvoiceScanner
         return (string) config('services.anthropic.key') !== '';
     }
 
-    public function scan(UploadedFile $file, ScanDocumentKind $kind = ScanDocumentKind::IncomingInvoice): ScannedInvoice
+    public function scan(UploadedFile $file, ScanDocumentKind $kind): ScannedInvoice
     {
         if (! $this->enabled()) {
             throw new RuntimeException('KI-Erkennung ist nicht konfiguriert (ANTHROPIC_API_KEY fehlt).');

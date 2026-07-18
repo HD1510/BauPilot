@@ -86,6 +86,7 @@ class ProjectController extends Controller
         /** @var User $user */
         $user = $request->user();
         $financials = $user->can('view-financials');
+        $canManageInvoices = $financials && Gate::allows('create', IncomingInvoice::class);
 
         $project->load(['customer:id,name', 'responsibleUser:id,name', 'appointments' => fn ($query) => $query->orderBy('on_date')]);
 
@@ -188,19 +189,24 @@ class ProjectController extends Controller
                 ]),
             'members' => $this->userOptions(),
             'suppliers' => $financials ? $this->supplierOptions() : [],
-            // Noch keinem Projekt zugeordnete Rechnungen — für die
-            // Zuordnung direkt auf der Projektseite.
-            'assignableIncoming' => $financials
+            // Noch keinem Projekt zugeordnete Rechnungen — nur für
+            // Rollen, die auch zuordnen dürfen (Admin/Büro).
+            'assignableIncoming' => $canManageInvoices
                 ? IncomingInvoice::query()->whereNull('project_id')
-                    ->with('supplier:id,name')->orderByDesc('invoice_date')->limit(100)->get()
+                    ->with('supplier:id,name')->orderByDesc('invoice_date')->limit(100)
+                    ->get(['id', 'supplier_id', 'supplier_invoice_no', 'gross', 'invoice_date'])
                     ->map(fn (IncomingInvoice $invoice): array => [
                         'id' => $invoice->id,
                         'label' => trim($invoice->supplier->name.' '.($invoice->supplier_invoice_no ?? '')).' — '.number_format((float) $invoice->gross, 2, ',', '.').' €',
                     ])
                 : [],
-            'assignableOutgoing' => $financials
+            'assignableOutgoing' => $canManageInvoices
                 ? OutgoingInvoice::query()->whereNull('project_id')->whereNull('original_invoice_id')
-                    ->with('customer:id,name')->orderByDesc('invoice_date')->limit(100)->get()
+                    // Archivierte Kunden mitladen — sonst wäre die
+                    // Beziehung null und die Seite fiele um.
+                    ->with(['customer' => fn ($query) => $query->withTrashed()->select(['id', 'name'])])
+                    ->orderByDesc('invoice_date')->limit(100)
+                    ->get(['id', 'customer_id', 'number', 'gross', 'invoice_date'])
                     ->map(fn (OutgoingInvoice $invoice): array => [
                         'id' => $invoice->id,
                         'label' => $invoice->number.' '.$invoice->customer->name.' — '.number_format((float) $invoice->gross, 2, ',', '.').' €',
@@ -209,7 +215,7 @@ class ProjectController extends Controller
             'canWrite' => Gate::allows('update', $project),
             'canAttach' => Gate::allows('attach', $project),
             'canViewFinancials' => $financials,
-            'canManageInvoices' => $financials && Gate::allows('create', IncomingInvoice::class),
+            'canManageInvoices' => $canManageInvoices,
         ]);
     }
 
