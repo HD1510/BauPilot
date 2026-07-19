@@ -1,10 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    EmptyState,
-    IndexShell
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState, IndexShell } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
+import { MaterialScanCard } from '@/components/master-data/material-scan-card';
 import { Badge } from '@/components/ui/badge';
 
 type MaterialListItem = {
@@ -20,9 +17,15 @@ type MaterialListItem = {
 export default function MaterialsIndex({
     materials,
     filters,
+    canWrite,
+    suppliers,
+    scanImagesEnabled,
 }: {
     materials: MaterialListItem[];
     filters: IndexFilters;
+    canWrite: boolean;
+    suppliers: { id: number; name: string }[];
+    scanImagesEnabled: boolean;
 }) {
     const { tenancy } = usePage().props;
 
@@ -36,6 +39,12 @@ export default function MaterialsIndex({
                 createLabel="Neuer Artikel"
                 filters={filters}
             >
+                {canWrite && (
+                    <MaterialScanCard
+                        suppliers={suppliers}
+                        imagesEnabled={scanImagesEnabled}
+                    />
+                )}
                 {materials.map((material) => (
                     <Link
                         key={material.id}

@@ -39,9 +39,15 @@ class MaterialController extends Controller
                 'archived' => ! $material->active,
             ]);
 
+        $canWrite = Gate::allows('create', Material::class);
+
         return Inertia::render('materials/index', [
             'materials' => $materials,
             'filters' => ['q' => $q, 'archived' => $archived],
+            // Für das Einlesen von Preislisten (Scan-Karte).
+            'canWrite' => $canWrite,
+            'suppliers' => $canWrite ? $this->supplierOptions() : [],
+            'scanImagesEnabled' => (string) config('services.anthropic.key') !== '',
         ]);
     }
 

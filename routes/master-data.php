@@ -6,6 +6,7 @@ use App\Http\Controllers\MasterData\CustomerController;
 use App\Http\Controllers\MasterData\EmployeeAccountController;
 use App\Http\Controllers\MasterData\EmployeeController;
 use App\Http\Controllers\MasterData\MaterialController;
+use App\Http\Controllers\MasterData\MaterialScanController;
 use App\Http\Controllers\MasterData\OvertimeController;
 use App\Http\Controllers\MasterData\SupplierController;
 use App\Http\Controllers\MasterData\VehicleController;
@@ -64,8 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('vehicles/{vehicle}/dates', [VehicleDateController::class, 'store'])->name('vehicles.dates.store');
     Route::delete('vehicles/{vehicle}/dates/{date}', [VehicleDateController::class, 'destroy'])->name('vehicles.dates.destroy');
 
-    // Material (Artikel-Preisliste)
+    // Material (Artikel-Preisliste) — inkl. Einlesen per PDF/Foto
     Route::get('materials', [MaterialController::class, 'index'])->name('materials.index');
+    Route::post('materials/scan', [MaterialScanController::class, 'scan'])->name('materials.scan');
+    Route::post('materials/import', [MaterialScanController::class, 'import'])->name('materials.import');
     Route::get('materials/create', [MaterialController::class, 'create'])->name('materials.create');
     Route::post('materials', [MaterialController::class, 'store'])->name('materials.store');
     Route::get('materials/{material}/edit', [MaterialController::class, 'edit'])->name('materials.edit');
