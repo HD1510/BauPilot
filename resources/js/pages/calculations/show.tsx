@@ -1,6 +1,14 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { FileText, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import {
+    FileText,
+    Pencil,
+    Plus,
+    ScanSearch,
+    Trash2,
+    Upload,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +24,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatEUR } from '@/lib/format';
+import { xsrfToken } from '@/lib/offline-queue';
 
 type OptionValue = { value: string; label: string };
 type ProjectOption = { id: number; title: string };
@@ -163,6 +173,13 @@ export default function CalculationsShow({
                     shapes={shapes}
                     materials={materials}
                     onDone={() => setEditRoom(null)}
+                />
+
+                <Separator />
+
+                <PlanImportCard
+                    calculationId={calculation.id}
+                    materials={materials}
                 />
 
                 <Separator />
@@ -705,6 +722,307 @@ function NumberField({
             />
             {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
             <InputError message={error} />
+        </div>
+    );
+}
+
+type PlanRoom = {
+    selected: boolean;
+    name: string;
+    area: string;
+    height: string;
+    perimeter: string;
+    material: string;
+    surface: string | null;
+};
+
+/**
+ * Einreichplan (CAD-PDF) einlesen — ohne KI: Raumstempel (Name, m²,
+ * Raumhöhe, Belag) kommen aus der Textebene des Plans. Der Umfang ist
+ * eine Rechteck-Schätzung und sollte geprüft werden.
+ */
+function PlanImportCard({
+    calculationId,
+    materials,
+}: {
+    calculationId: number;
+    materials: OptionValue[];
+}) {
+    const fileInput = useRef<HTMLInputElement>(null);
+    const [busy, setBusy] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [rooms, setRooms] = useState<PlanRoom[]>([]);
+
+    const scan = async () => {
+        const file = fileInput.current?.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        setBusy(true);
+
+        try {
+            const body = new FormData();
+            body.append('file', file);
+
+            const response = await fetch(
+                `/calculations/${calculationId}/plan-scan`,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': xsrfToken(),
+                    },
+                    body,
+                },
+            );
+
+            const json = (await response.json().catch(() => null)) as {
+                message?: string;
+                rooms?: {
+                    name: string;
+                    area: number;
+                    height: number;
+                    perimeter: number;
+                    material: string;
+                    surface: string | null;
+                }[];
+            } | null;
+
+            if (!response.ok || !json?.rooms) {
+                toast.error(
+                    json?.message ?? 'Der Plan konnte nicht gelesen werden.',
+                );
+
+                return;
+            }
+
+            setRooms(
+                json.rooms.map((room) => ({
+                    selected: true,
+                    name: room.name,
+                    area: String(room.area),
+                    height: String(room.height),
+                    perimeter: String(room.perimeter),
+                    material: room.material,
+                    surface: room.surface,
+                })),
+            );
+        } catch {
+            toast.error('Keine Verbindung — bitte erneut versuchen.');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const update = (index: number, patch: Partial<PlanRoom>) => {
+        setRooms((current) =>
+            current.map((room, i) =>
+                i === index ? { ...room, ...patch } : room,
+            ),
+        );
+    };
+
+    const selectedRooms = rooms.filter(
+        (room) => room.selected && room.name.trim() !== '',
+    );
+
+    const submit = () => {
+        setSaving(true);
+        router.post(
+            `/calculations/${calculationId}/plan-import`,
+            {
+                rooms: selectedRooms.map((room) => ({
+                    name: room.name.trim(),
+                    area: room.area,
+                    height: room.height,
+                    perimeter: room.perimeter,
+                    material: room.material,
+                })),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setRooms([]);
+
+                    if (fileInput.current) {
+                        fileInput.current.value = '';
+                    }
+                },
+                onFinish: () => setSaving(false),
+            },
+        );
+    };
+
+    return (
+        <div className="grid max-w-4xl gap-3">
+            <Heading
+                variant="small"
+                title="Einreichplan (PDF) einlesen"
+                description="Liest die Raumstempel (Name, m², Raumhöhe, Belag) aus CAD-Plänen — ohne KI. Der Umfang wird geschätzt (≈) und sollte geprüft werden; gescannte Papierpläne haben keine Textebene."
+            />
+            <div className="flex items-end gap-3">
+                <div className="grid flex-1 gap-2">
+                    <Label htmlFor="plan-scan-file">
+                        Plan (PDF, max. 40 MB)
+                    </Label>
+                    <Input
+                        id="plan-scan-file"
+                        ref={fileInput}
+                        type="file"
+                        accept=".pdf"
+                    />
+                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void scan()}
+                >
+                    {busy ? <Spinner /> : <ScanSearch className="size-4" />}
+                    Räume erkennen
+                </Button>
+            </div>
+
+            {rooms.length > 0 && (
+                <div className="grid gap-3">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">
+                            {rooms.length} Räume erkannt —{' '}
+                            {selectedRooms.length} zum Übernehmen gewählt
+                        </span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                                setRooms((current) => {
+                                    const all = current.every(
+                                        (room) => room.selected,
+                                    );
+
+                                    return current.map((room) => ({
+                                        ...room,
+                                        selected: !all,
+                                    }));
+                                })
+                            }
+                        >
+                            Alle an/abwählen
+                        </Button>
+                    </div>
+
+                    <div className="grid gap-2">
+                        {rooms.map((room, index) => (
+                            <div
+                                key={index}
+                                className="flex flex-wrap items-center gap-2 rounded-lg border border-sidebar-border/70 p-2 dark:border-sidebar-border"
+                            >
+                                <Checkbox
+                                    checked={room.selected}
+                                    onCheckedChange={(checked) =>
+                                        update(index, {
+                                            selected: checked === true,
+                                        })
+                                    }
+                                    aria-label={`${room.name} übernehmen`}
+                                />
+                                <Input
+                                    className="min-w-36 flex-1"
+                                    value={room.name}
+                                    onChange={(e) =>
+                                        update(index, { name: e.target.value })
+                                    }
+                                    aria-label="Raumname"
+                                />
+                                <Input
+                                    className="w-24"
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={room.area}
+                                    onChange={(e) =>
+                                        update(index, { area: e.target.value })
+                                    }
+                                    aria-label="Fläche (m²)"
+                                    title="Fläche (m²)"
+                                />
+                                <Input
+                                    className="w-20"
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={room.height}
+                                    onChange={(e) =>
+                                        update(index, {
+                                            height: e.target.value,
+                                        })
+                                    }
+                                    aria-label="Raumhöhe (m)"
+                                    title="Raumhöhe (m)"
+                                />
+                                <Input
+                                    className="w-24"
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={room.perimeter}
+                                    onChange={(e) =>
+                                        update(index, {
+                                            perimeter: e.target.value,
+                                        })
+                                    }
+                                    aria-label="Umfang ≈ (lfm)"
+                                    title="Umfang ≈ (lfm) — Schätzung, bitte prüfen"
+                                />
+                                <Select
+                                    value={room.material}
+                                    onValueChange={(value) =>
+                                        update(index, { material: value })
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className="w-44"
+                                        aria-label="Belag"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {materials.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {room.surface && (
+                                    <Badge variant="secondary">
+                                        {room.surface}
+                                    </Badge>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <Button
+                        type="button"
+                        className="w-fit"
+                        disabled={saving || selectedRooms.length === 0}
+                        onClick={submit}
+                    >
+                        {saving ? <Spinner /> : <Plus className="size-4" />}
+                        {selectedRooms.length === 1
+                            ? '1 Raum übernehmen'
+                            : `${selectedRooms.length} Räume übernehmen`}
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

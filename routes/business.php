@@ -34,6 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('calculations/{calculation}', [CalculationController::class, 'update'])->name('calculations.update');
     Route::delete('calculations/{calculation}', [CalculationController::class, 'destroy'])->name('calculations.destroy');
     Route::post('calculations/{calculation}/import', [CalculationController::class, 'import'])->name('calculations.import');
+    Route::post('calculations/{calculation}/plan-scan', [CalculationController::class, 'planScan'])->name('calculations.plan-scan');
+    Route::post('calculations/{calculation}/plan-import', [CalculationController::class, 'planImport'])->name('calculations.plan-import');
     Route::post('calculations/{calculation}/rooms', [CalculationRoomController::class, 'store'])->name('calculations.rooms.store');
     Route::patch('calculations/{calculation}/rooms/{room}', [CalculationRoomController::class, 'update'])->name('calculations.rooms.update');
     Route::delete('calculations/{calculation}/rooms/{room}', [CalculationRoomController::class, 'destroy'])->name('calculations.rooms.destroy');

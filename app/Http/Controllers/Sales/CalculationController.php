@@ -8,15 +8,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Calculation;
 use App\Models\CalculationRoom;
 use App\Models\Project;
+use App\Support\Calculation\PlanRoomParser;
 use App\Support\Calculation\RoomCalculator;
 use App\Support\Calculation\RoomCsvImporter;
 use App\Support\Tenancy\CompanyContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Smalot\PdfParser\Parser as PdfParser;
+use Throwable;
 
 /**
  * Baukalkulation: Räume mit Formen und Belägen erfassen, Gewerke-Mengen
@@ -163,6 +168,81 @@ class CalculationController extends Controller
 
         return redirect()->route('calculations.index')
             ->with('success', "Kalkulation „{$calculation->name}“ wurde gelöscht.");
+    }
+
+    /**
+     * Einreichplan (CAD-PDF) einlesen: Raumstempel aus der Textebene —
+     * ganz ohne KI. Gibt die erkannten Räume zur Auswahl zurück.
+     */
+    public function planScan(Request $request, Calculation $calculation): JsonResponse
+    {
+        Gate::authorize('update', $calculation);
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:pdf', 'max:40960'],
+        ], [], ['file' => 'Plan']);
+
+        /** @var UploadedFile $file */
+        $file = $request->file('file');
+
+        try {
+            $text = trim((new PdfParser)->parseFile((string) $file->getRealPath())->getText());
+        } catch (Throwable) {
+            $text = '';
+        }
+
+        if ($text === '') {
+            return response()->json([
+                'message' => 'Das PDF enthält keine Textebene (vermutlich ein Scan oder Foto). Ohne KI funktioniert nur ein direkt aus CAD geplottetes PDF.',
+            ], 422);
+        }
+
+        $rooms = PlanRoomParser::parse($text);
+
+        if ($rooms === []) {
+            return response()->json([
+                'message' => 'Keine Raumstempel erkannt — erwartet werden Beschriftungen wie „WOHNZIMMER 20,35 m²" im Plan.',
+            ], 422);
+        }
+
+        return response()->json(['rooms' => $rooms]);
+    }
+
+    /**
+     * Ausgewählte Räume aus dem Einreichplan übernehmen — als
+     * „manuell" mit ≈ geschätztem Umfang.
+     */
+    public function planImport(Request $request, Calculation $calculation): RedirectResponse
+    {
+        Gate::authorize('update', $calculation);
+
+        $validated = $request->validate([
+            'rooms' => ['required', 'array', 'min:1', 'max:200'],
+            'rooms.*.name' => ['required', 'string', 'max:255'],
+            'rooms.*.area' => ['required', 'numeric', 'between:0.01,100000'],
+            'rooms.*.height' => ['required', 'numeric', 'between:0.5,20'],
+            'rooms.*.perimeter' => ['required', 'numeric', 'between:0,100000'],
+            'rooms.*.material' => ['required', Rule::enum(RoomMaterial::class)],
+        ], [], ['rooms' => 'Räume']);
+
+        foreach ($validated['rooms'] as $room) {
+            $calculation->rooms()->create([
+                'company_id' => $calculation->company_id,
+                'name' => $room['name'],
+                'shape' => RoomShape::Manual,
+                'material' => $room['material'],
+                'height' => $room['height'],
+                'area_manual' => $room['area'],
+                'perimeter_manual' => $room['perimeter'],
+                'estimated' => true,
+            ]);
+        }
+
+        $count = count($validated['rooms']);
+
+        return back()->with('success', $count === 1
+            ? '1 Raum aus dem Plan übernommen — Umfang bitte prüfen (≈ geschätzt).'
+            : "{$count} Räume aus dem Plan übernommen — Umfänge bitte prüfen (≈ geschätzt).");
     }
 
     /**
