@@ -1,5 +1,10 @@
 import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
+import {
+    NewPartnerDialog,
+    useSelectCreatedPartner,
+} from '@/components/partners/new-partner-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -93,9 +98,19 @@ export function IncomingInvoiceForm({
             scan_token: scanToken ?? '',
         });
 
+    // Schnell angelegte Lieferanten (Dialog) ergänzen die Liste sofort.
+    const [extraSuppliers, setExtraSuppliers] = useState<SupplierOption[]>([]);
+    const selectCreated = useSelectCreatedPartner((id) =>
+        setData('supplier_id', id),
+    );
+    const allSuppliers = [
+        ...suppliers,
+        ...extraSuppliers.filter((e) => !suppliers.some((s) => s.id === e.id)),
+    ];
+
     const selectSupplier = (value: string) => {
         setData('supplier_id', value);
-        const supplier = suppliers.find((s) => String(s.id) === value);
+        const supplier = allSuppliers.find((s) => String(s.id) === value);
 
         if (supplier?.default_cost_type_id && !data.cost_type_id) {
             setData('cost_type_id', String(supplier.default_cost_type_id));
@@ -131,24 +146,47 @@ export function IncomingInvoiceForm({
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="supplier_id">Lieferant</Label>
-                        <Select
-                            value={data.supplier_id}
-                            onValueChange={selectSupplier}
-                        >
-                            <SelectTrigger id="supplier_id">
-                                <SelectValue placeholder="Lieferant wählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {suppliers.map((supplier) => (
-                                    <SelectItem
-                                        key={supplier.id}
-                                        value={String(supplier.id)}
-                                    >
-                                        {supplier.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                            <Select
+                                value={data.supplier_id}
+                                onValueChange={selectSupplier}
+                            >
+                                <SelectTrigger
+                                    id="supplier_id"
+                                    className="flex-1"
+                                >
+                                    {/* Label explizit — nach Dialog-Anlage
+                                        kennt Radix den neuen Eintrag noch nicht */}
+                                    <SelectValue placeholder="Lieferant wählen">
+                                        {allSuppliers.find(
+                                            (s) =>
+                                                String(s.id) ===
+                                                data.supplier_id,
+                                        )?.name ?? null}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allSuppliers.map((supplier) => (
+                                        <SelectItem
+                                            key={supplier.id}
+                                            value={String(supplier.id)}
+                                        >
+                                            {supplier.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <NewPartnerDialog
+                                kind="supplier"
+                                onCreated={(partner) => {
+                                    setExtraSuppliers((list) => [
+                                        ...list,
+                                        partner,
+                                    ]);
+                                    selectCreated(String(partner.id));
+                                }}
+                            />
+                        </div>
                         <InputError
                             message={errors.supplier_id ?? errors.lock_version}
                         />

@@ -69,7 +69,7 @@ export default function OffersCreate({
                 <InvoiceScanCard
                     onApply={applyScan}
                     scanUrl="/offers/scan"
-                    createPartnerUrl="/scan/customer"
+                    createPartnerUrl="/partners/customer"
                     partnerLabel="Kunde"
                     imagesEnabled={scanImagesEnabled}
                 />

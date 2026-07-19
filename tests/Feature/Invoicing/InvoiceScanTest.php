@@ -141,7 +141,7 @@ test('rolle site darf nicht scannen', function () {
 test('neuen lieferanten aus erkannten konditionen anlegen', function () {
     [, $company] = actingMember();
 
-    $response = $this->postJson('/incoming-invoices/scan/supplier', [
+    $response = $this->postJson('/partners/supplier', [
         'name' => 'Neuer Lieferant e.U.',
         'payment_target_days' => 21,
         'skonto_percent' => '3.00',

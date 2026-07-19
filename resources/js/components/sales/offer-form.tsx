@@ -1,5 +1,10 @@
 import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
+import {
+    NewPartnerDialog,
+    useSelectCreatedPartner,
+} from '@/components/partners/new-partner-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +65,16 @@ export function OfferForm({
             scan_token: scanToken ?? '',
         });
 
+    // Schnell angelegte Kunden (Dialog) ergänzen die Liste sofort.
+    const [extraCustomers, setExtraCustomers] = useState<Option[]>([]);
+    const selectCreated = useSelectCreatedPartner((id) =>
+        setData('customer_id', id),
+    );
+    const allCustomers = [
+        ...customers,
+        ...extraCustomers.filter((e) => !customers.some((c) => c.id === e.id)),
+    ];
+
     return (
         <form
             className="max-w-xl space-y-6"
@@ -81,26 +96,52 @@ export function OfferForm({
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="customer_id">Kunde</Label>
-                        <Select
-                            value={data.customer_id}
-                            onValueChange={(value) =>
-                                setData('customer_id', value)
-                            }
-                        >
-                            <SelectTrigger id="customer_id">
-                                <SelectValue placeholder="Kunde wählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {customers.map((customer) => (
-                                    <SelectItem
-                                        key={customer.id}
-                                        value={String(customer.id)}
-                                    >
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                            <Select
+                                value={data.customer_id}
+                                onValueChange={(value) =>
+                                    setData('customer_id', value)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="customer_id"
+                                    className="flex-1"
+                                >
+                                    {/* Label explizit — nach Dialog-Anlage
+                                        kennt Radix den neuen Eintrag noch nicht */}
+                                    <SelectValue placeholder="Kunde wählen">
+                                        {allCustomers.find(
+                                            (c) =>
+                                                String(c.id) ===
+                                                data.customer_id,
+                                        )?.name ?? null}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allCustomers.map((customer) => (
+                                        <SelectItem
+                                            key={customer.id}
+                                            value={String(customer.id)}
+                                        >
+                                            {customer.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <NewPartnerDialog
+                                kind="customer"
+                                onCreated={(partner) => {
+                                    setExtraCustomers((list) => [
+                                        ...list,
+                                        {
+                                            id: partner.id,
+                                            name: partner.name,
+                                        },
+                                    ]);
+                                    selectCreated(String(partner.id));
+                                }}
+                            />
+                        </div>
                         <InputError
                             message={errors.customer_id ?? errors.lock_version}
                         />

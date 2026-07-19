@@ -98,7 +98,7 @@ test('angebot: nummer und angebotssumme werden erkannt', function () {
 test('neuen kunden aus erkannten daten anlegen (mit uid)', function () {
     [, $company] = actingMember();
 
-    $response = $this->postJson('/scan/customer', [
+    $response = $this->postJson('/partners/customer', [
         'name' => 'Wohnbau Steiner GmbH',
         'payment_target_days' => 21,
         'vat_id' => 'ATU44455566',

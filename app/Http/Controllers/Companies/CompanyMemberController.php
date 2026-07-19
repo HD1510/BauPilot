@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
 class CompanyMemberController extends Controller
@@ -40,6 +41,37 @@ class CompanyMemberController extends Controller
         $company->users()->attach($user->id, ['role' => $validated['role']]);
 
         return back()->with('success', "{$user->name} wurde als „".CompanyRole::from($validated['role'])->label().'“ hinzugefügt.');
+    }
+
+    /**
+     * Mitarbeiterkonto direkt anlegen: Der Admin vergibt Name, E-Mail
+     * und Startpasswort und gibt beides an die Person weiter. Ohne
+     * Mailversand gibt es keine Bestätigungsmail — das vom Admin
+     * angelegte Konto gilt sofort als bestätigt; das Passwort kann die
+     * Person in den Einstellungen ändern.
+     */
+    public function storeAccount(Request $request, Company $company): RedirectResponse
+    {
+        Gate::authorize('manageMembers', $company);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', PasswordRule::min(8)],
+            'role' => ['required', Rule::enum(CompanyRole::class)],
+        ], [], ['name' => 'Name', 'email' => 'E-Mail-Adresse', 'password' => 'Passwort', 'role' => 'Rolle']);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ]);
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        $company->users()->attach($user->id, ['role' => $validated['role']]);
+
+        return back()->with('success', "Konto für {$user->name} wurde angelegt — Zugangsdaten bitte persönlich weitergeben.");
     }
 
     public function update(Request $request, Company $company, User $user): RedirectResponse

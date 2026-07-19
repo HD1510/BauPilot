@@ -5,6 +5,7 @@ use App\Http\Controllers\Invoicing\IncomingInvoiceController;
 use App\Http\Controllers\Invoicing\InvoiceActionController;
 use App\Http\Controllers\Invoicing\InvoiceScanController;
 use App\Http\Controllers\Invoicing\OutgoingInvoiceController;
+use App\Http\Controllers\MasterData\PartnerQuickCreateController;
 use App\Http\Controllers\Projects\ProjectNoteController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\OfferController;
@@ -63,13 +64,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('outgoing-invoices/{outgoing_invoice}/adjustments', [InvoiceActionController::class, 'storeAdjustment'])->name('outgoing-invoices.adjustments.store');
     Route::delete('outgoing-invoices/{outgoing_invoice}', [OutgoingInvoiceController::class, 'destroy'])->name('outgoing-invoices.destroy');
 
-    // Beleg-Scan (Leiter: E-Rechnung → Textanalyse → KI) je Belegart,
-    // dazu Partner-Anlage aus erkannten Daten
+    // Beleg-Scan (Leiter: E-Rechnung → Textanalyse → KI) je Belegart
     Route::post('incoming-invoices/scan', [InvoiceScanController::class, 'incoming'])->name('incoming-invoices.scan');
-    Route::post('incoming-invoices/scan/supplier', [InvoiceScanController::class, 'storeSupplier'])->name('incoming-invoices.scan.supplier');
     Route::post('outgoing-invoices/scan', [InvoiceScanController::class, 'outgoing'])->name('outgoing-invoices.scan');
     Route::post('offers/scan', [InvoiceScanController::class, 'offer'])->name('offers.scan');
-    Route::post('scan/customer', [InvoiceScanController::class, 'storeCustomer'])->name('scan.customer');
+
+    // Partner-Schnellanlage direkt aus Masken (Scan und Formulare)
+    Route::post('partners/supplier', [PartnerQuickCreateController::class, 'supplier'])->name('partners.supplier');
+    Route::post('partners/customer', [PartnerQuickCreateController::class, 'customer'])->name('partners.customer');
     Route::get('incoming-invoices', [IncomingInvoiceController::class, 'index'])->name('incoming-invoices.index');
     Route::get('incoming-invoices/create', [IncomingInvoiceController::class, 'create'])->name('incoming-invoices.create');
     Route::post('incoming-invoices', [IncomingInvoiceController::class, 'store'])->name('incoming-invoices.store');

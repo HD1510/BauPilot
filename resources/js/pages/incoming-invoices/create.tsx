@@ -97,7 +97,7 @@ export default function IncomingInvoicesCreate({
                 <InvoiceScanCard
                     onApply={applyScan}
                     scanUrl="/incoming-invoices/scan"
-                    createPartnerUrl="/incoming-invoices/scan/supplier"
+                    createPartnerUrl="/partners/supplier"
                     partnerLabel="Lieferant"
                     imagesEnabled={scanImagesEnabled}
                 />

@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Invoicing;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
 use App\Models\IncomingInvoice;
 use App\Models\Offer;
 use App\Models\OutgoingInvoice;
-use App\Models\Supplier;
 use App\Support\InvoiceScan\InvoiceScanPipeline;
 use App\Support\InvoiceScan\PartnerMatcher;
 use App\Support\InvoiceScan\ScanDocumentKind;
@@ -58,58 +56,6 @@ class InvoiceScanController extends Controller
         Gate::authorize('create', Offer::class);
 
         return $this->scan($request, ScanDocumentKind::Offer);
-    }
-
-    /**
-     * Neuen Lieferanten aus den erkannten Konditionen anlegen.
-     */
-    public function storeSupplier(Request $request): JsonResponse
-    {
-        Gate::authorize('create', Supplier::class);
-
-        // Gleiche Grenzen wie im Lieferantenstamm (SupplierRequest).
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'payment_target_days' => ['required', 'integer', 'between:0,365'],
-            'skonto_percent' => ['nullable', 'decimal:0,2', 'between:0,100'],
-            'skonto_days' => ['nullable', 'integer', 'between:0,365'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-        ], [], ['name' => 'Name', 'payment_target_days' => 'Zahlungsziel']);
-
-        $supplier = Supplier::create([...$validated, 'active' => true]);
-
-        return response()->json([
-            'id' => $supplier->id,
-            'name' => $supplier->name,
-            'payment_target_days' => $supplier->payment_target_days,
-            'default_cost_type_id' => $supplier->default_cost_type_id,
-        ], 201);
-    }
-
-    /**
-     * Neuen Kunden aus den erkannten Daten anlegen.
-     */
-    public function storeCustomer(Request $request): JsonResponse
-    {
-        Gate::authorize('create', Customer::class);
-
-        // Gleiche Grenzen wie im Kundenstamm (CustomerRequest) — der
-        // Scan-Weg darf nicht strenger sein als die Stammdatenpflege.
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'payment_target_days' => ['required', 'integer', 'between:0,365'],
-            'vat_id' => ['nullable', 'string', 'max:50'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-        ], [], ['name' => 'Name', 'payment_target_days' => 'Zahlungsziel']);
-
-        $customer = Customer::create($validated);
-
-        return response()->json([
-            'id' => $customer->id,
-            'name' => $customer->name,
-            'payment_target_days' => $customer->payment_target_days,
-            'default_cost_type_id' => null,
-        ], 201);
     }
 
     private function scan(Request $request, ScanDocumentKind $kind): JsonResponse
