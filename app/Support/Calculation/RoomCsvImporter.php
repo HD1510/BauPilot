@@ -8,7 +8,7 @@ use App\Enums\RoomMaterial;
  * CSV/TXT-Import für Räume: erkennt Komma, Strichpunkt oder Tabulator
  * als Trenner und deutsche wie englische Spaltennamen über
  * Teilstring-Suche (länge/length, breite/width, höhe/height,
- * material/belag, kanten/edges, tür/door, öffnung/opening …).
+ * material/belag, kanten/edges, tür/door …).
  */
 class RoomCsvImporter
 {
@@ -40,7 +40,6 @@ class RoomCsvImporter
             'material' => self::findColumn($headers, ['material', 'belag']),
             'edges' => self::findColumn($headers, ['kanten', 'edges']),
             'door_width' => self::findColumn($headers, ['tür', 'tuer', 'door']),
-            'opening_area' => self::findColumn($headers, ['öffnung', 'oeffnung', 'opening', 'fenster', 'window']),
         ];
 
         $rows = [];
@@ -70,7 +69,6 @@ class RoomCsvImporter
                 'height' => $height,
                 'edges' => (int) (self::number(self::cell($cells, $columns['edges'])) ?? 0),
                 'door_width' => self::number(self::cell($cells, $columns['door_width'])) ?? 0,
-                'opening_area' => self::number(self::cell($cells, $columns['opening_area'])) ?? 0,
             ];
         }
 

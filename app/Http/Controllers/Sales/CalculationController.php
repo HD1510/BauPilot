@@ -101,7 +101,6 @@ class CalculationController extends Controller
                 'perimeter_manual' => $room->perimeter_manual,
                 'edges' => $room->edges,
                 'door_width' => $room->door_width,
-                'opening_area' => $room->opening_area,
                 'estimated' => $room->estimated,
                 'quantities' => $this->calculator->quantities($room, $calculation),
             ])->values(),

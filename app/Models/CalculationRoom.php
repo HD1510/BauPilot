@@ -32,7 +32,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric-string|null $perimeter_manual
  * @property int $edges
  * @property numeric-string $door_width
- * @property numeric-string $opening_area
  * @property bool $estimated
  */
 #[Fillable([
@@ -50,7 +49,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'perimeter_manual',
     'edges',
     'door_width',
-    'opening_area',
     'estimated',
 ])]
 class CalculationRoom extends Model
@@ -73,7 +71,6 @@ class CalculationRoom extends Model
             'perimeter_manual' => 'decimal:2',
             'edges' => 'integer',
             'door_width' => 'decimal:2',
-            'opening_area' => 'decimal:2',
             'estimated' => 'boolean',
         ];
     }

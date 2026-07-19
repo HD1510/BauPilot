@@ -33,7 +33,6 @@ function roomFixture(array $overrides = []): CalculationRoom
         'height' => 2.5,
         'edges' => 0,
         'door_width' => 0,
-        'opening_area' => 0,
     ]);
 }
 
@@ -50,15 +49,16 @@ test('rechteck mit parkett: fläche, verschnitt, sockel, maler', function () {
         ->and($q['cost'])->toBe(23.0 * 40 + 18.0 * 10 + 65.0 * 12);
 });
 
-test('türbreite reduziert sockel und fugen, öffnungen die malerfläche', function () {
+test('türbreite reduziert sockel und fugen, fensterflächen zählen voll mit', function () {
     $room = roomFixture();
     $room->door_width = '1.8';
-    $room->opening_area = '4';
 
     $q = (new RoomCalculator)->quantities($room, calcFixture());
 
+    // Fenster/Öffnungen werden bewusst nicht abgezogen — das
+    // Ausarbeiten ist Mehraufwand, die volle Fläche macht den Preis.
     expect($q['skirting'])->toBe(16.2)           // 18 − 1,8
-        ->and($q['painting_area'])->toBe(61.0);  // 18 × 2,5 − 4 + 20
+        ->and($q['painting_area'])->toBe(65.0);  // 18 × 2,5 + 20 — voll
 });
 
 test('wandfliesen: fliesenband bis fliesenhöhe, maler übernimmt den rest', function () {

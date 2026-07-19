@@ -13,8 +13,9 @@ use App\Models\CalculationRoom;
  * Gegenüber der Alt-Logik verbessert:
  *  - Verschnitt und Fliesenhöhe sind je Kalkulation einstellbar statt
  *    fix 15 % bzw. 2,10 m.
- *  - Türbreiten reduzieren Sockelleisten und Silikonfugen, Öffnungen
- *    (Fenster/Türen) reduzieren Wandfliesen- und Malerfläche.
+ *  - Türbreiten reduzieren Sockelleisten und Silikonfugen. Fenster und
+ *    Öffnungen werden bewusst NICHT abgezogen: Das Ausarbeiten ist
+ *    mehr Arbeit als die Fläche selbst — sie zählen voll mit.
  *  - Die Wandfliesenfläche reicht bis zur Fliesenhöhe (nicht bis zur
  *    Decke), der Maler übernimmt den Rest — beides passt zusammen.
  *  - Der Materialverschnitt steckt direkt in den Belagsmengen, statt
@@ -40,7 +41,6 @@ class RoomCalculator
         $tileHeight = (float) $calculation->wall_tile_height;
         $height = (float) $room->height;
         $doorWidth = min((float) $room->door_width, $perimeter);
-        $openingArea = (float) $room->opening_area;
 
         // Sockel und Bodenrand-Fugen laufen nicht durch Türöffnungen.
         $edgePerimeter = $perimeter - $doorWidth;
@@ -57,8 +57,7 @@ class RoomCalculator
         $wallTileArea = 0.0;
 
         if ($room->material === RoomMaterial::WallTiles) {
-            $band = $perimeter * min($height, $tileHeight) - $openingArea;
-            $wallTileArea = max($band, 0) * $wasteFactor;
+            $wallTileArea = $perimeter * min($height, $tileHeight) * $wasteFactor;
         }
 
         $silicone = match ($room->material) {
@@ -73,7 +72,7 @@ class RoomCalculator
 
         $paintingArea = $room->material === RoomMaterial::WallTiles
             ? $perimeter * max($height - $tileHeight, 0) + $area
-            : max($perimeter * $height - $openingArea, 0) + $area;
+            : $perimeter * $height + $area;
 
         $quantities = [
             'area' => $this->round($area),

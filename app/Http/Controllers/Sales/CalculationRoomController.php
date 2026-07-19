@@ -68,7 +68,6 @@ class CalculationRoomController extends Controller
             'perimeter_manual' => ['nullable', 'numeric', 'between:0,100000', 'required_if:shape,manual'],
             'edges' => ['nullable', 'integer', 'between:0,50'],
             'door_width' => ['nullable', 'numeric', 'between:0,100'],
-            'opening_area' => ['nullable', 'numeric', 'between:0,1000'],
             'estimated' => ['boolean'],
         ], [], [
             'name' => 'Name',
@@ -84,7 +83,6 @@ class CalculationRoomController extends Controller
             'perimeter_manual' => 'Umfang',
             'edges' => 'Außenkanten',
             'door_width' => 'Türbreiten',
-            'opening_area' => 'Öffnungsflächen',
         ]);
     }
 }

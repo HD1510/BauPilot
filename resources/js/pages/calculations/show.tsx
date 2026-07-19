@@ -51,7 +51,6 @@ type Room = {
     perimeter_manual: string | null;
     edges: number;
     door_width: string;
-    opening_area: string;
     estimated: boolean;
     quantities: Quantities;
 };
@@ -127,7 +126,7 @@ export default function CalculationsShow({
                 <Heading
                     variant="small"
                     title="Räume"
-                    description="Je Raum: Form, Maße, Belag — Türbreiten und Fensterflächen werden abgezogen"
+                    description="Je Raum: Form, Maße, Belag — Türbreiten entfallen bei Sockel und Fugen; Fensterflächen zählen voll mit (Ausarbeiten ist Mehraufwand)"
                 />
 
                 <div className="grid max-w-4xl gap-2">
@@ -342,7 +341,6 @@ function RoomForm({
         perimeter_manual: room?.perimeter_manual ?? '',
         edges: room ? String(room.edges) : '0',
         door_width: room?.door_width ?? '0',
-        opening_area: room?.opening_area ?? '0',
         estimated: room?.estimated ?? false,
     });
 
@@ -535,14 +533,6 @@ function RoomForm({
                         onChange={(v) => setData('door_width', v)}
                         error={errors.door_width}
                         hint="entfällt bei Sockel und Fugen"
-                    />
-                    <NumberField
-                        id="room-opening-area"
-                        label="Fenster/Öffnungen (m²)"
-                        value={data.opening_area}
-                        onChange={(v) => setData('opening_area', v)}
-                        error={errors.opening_area}
-                        hint="entfällt bei Wand-/Malerfläche"
                     />
                     {isWallTiles && (
                         <NumberField
