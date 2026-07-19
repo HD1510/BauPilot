@@ -36,8 +36,11 @@ class TextInvoiceParser
         return new ScannedInvoice(
             partnerName: $knownPartnerName ?? self::partnerNameHeuristic($text, $kind, $ownCompanyName),
             partnerUid: self::vatId($text, $ownVatId),
-            // Auf eigenen Belegen steht die eigene IBAN — dort nicht raten.
+            // Auf eigenen Belegen gehören IBAN, E-Mail und Telefon dem
+            // Absender (uns) — dort nicht raten.
             partnerIban: $kind->partnerIsSeller() ? self::iban($text) : null,
+            partnerEmail: $kind->partnerIsSeller() ? self::email($text) : null,
+            partnerPhone: $kind->partnerIsSeller() ? self::phone($text) : null,
             paymentTargetDays: self::paymentTargetDays($text, $docDate),
             skontoPercent: $skonto['percent'],
             skontoDays: $skonto['days'],
@@ -142,6 +145,30 @@ class TextInvoiceParser
         return null;
     }
 
+    private static function email(string $text): ?string
+    {
+        return preg_match('/\b([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})\b/u', $text, $m) === 1
+            ? strtolower($m[1])
+            : null;
+    }
+
+    private static function phone(string $text): ?string
+    {
+        // IBANs vorher ausblenden — deren Zifferngruppen sähen sonst
+        // wie eine Telefonnummer aus.
+        $cleaned = (string) preg_replace('/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?\b/u', ' ', $text);
+
+        // Internationale Schreibweise (+43 …) oder österreichische
+        // Vorwahl (0…), mindestens 8 Ziffern insgesamt.
+        if (preg_match('/(\+\d{1,3}[\d\s\/\-()]{7,20}\d|\b0\d{2,4}[\s\/\-]\d[\d\s\/\-]{5,15}\d)/u', $cleaned, $m) === 1) {
+            $phone = trim($m[1]);
+
+            return strlen((string) preg_replace('/\D+/', '', $phone)) >= 8 ? $phone : null;
+        }
+
+        return null;
+    }
+
     private static function docNumber(string $text, ScanDocumentKind $kind): ?string
     {
         $patterns = $kind === ScanDocumentKind::Offer
@@ -224,7 +251,9 @@ class TextInvoiceParser
         return preg_match('/Übergang\s+der\s+Steuerschuld|Reverse[-\s]?Charge|§\s?19\s?(?:Abs|UStG)/iu', $text) === 1;
     }
 
-    private const LEGAL_FORM_PATTERN = '/^(.{2,60}?(?:GmbH\s?&\s?Co\.?\s?KG|Ges\.?m\.?b\.?H\.?|GmbH|e\.\s?U\.|AG|KG|OG))(?=\s|$|[,;:])/u';
+    // Kurzformen (AG/KG/OG) nur als eigenes Wort — sonst träfe das
+    // Muster Wörter wie „BETRAG" oder „WERKZEUG".
+    private const LEGAL_FORM_PATTERN = '/^(.{2,60}?(?:GmbH\s?&\s?Co\.?\s?KG|Ges\.?m\.?b\.?H\.?|GmbH|e\.\s?U\.|(?<=\s)(?:AG|KG|OG)))(?=\s|$|[,;:])/u';
 
     /**
      * Kein bekannter Partner im Text — dann dort suchen, wo er auf
@@ -272,7 +301,54 @@ class TextInvoiceParser
             }
         }
 
+        // Keine Rechtsform gefunden (Einzelunternehmer wie „Herbert
+        // Dienbauer — HD5"): die klassische Absenderzeile lesen —
+        // „Name · Straße · PLZ Ort [· E-Mail · Telefon]".
+        foreach ($regions as $region) {
+            foreach ($region as $line) {
+                if ($isOwn($line)) {
+                    continue;
+                }
+
+                $name = self::senderLineName($line);
+
+                if ($name !== null) {
+                    return $name;
+                }
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * Erste Angabe einer Absenderzeile, wenn eine spätere Angabe nach
+     * Adresse aussieht (Straße mit Hausnummer oder PLZ Ort) — nur dann
+     * ist die Zeile wirklich eine Absenderzeile.
+     */
+    private static function senderLineName(string $line): ?string
+    {
+        $segments = array_values(array_filter(array_map('trim', preg_split('/\s*[|·•]\s*|\s{3,}/u', $line) ?: [])));
+
+        if (count($segments) < 2) {
+            return null;
+        }
+
+        $rest = implode(' · ', array_slice($segments, 1));
+
+        if (preg_match('/\b\d{4,5}\s+\p{L}|(?:straße|strasse|gasse|weg|platz|allee)\s*\d/iu', $rest) !== 1) {
+            return null;
+        }
+
+        $name = $segments[0];
+
+        // Der Name steht vorne — E-Mail, Web, Telefon oder Adressen
+        // an erster Stelle disqualifizieren die Zeile.
+        if (strlen($name) > 60 || preg_match('/@|www\.|https?:|\+?\d{4,}|\b\d{4,5}\s/u', $name) === 1) {
+            return null;
+        }
+
+        return $name;
     }
 
     /**
@@ -286,8 +362,9 @@ class TextInvoiceParser
     private static function addressWindowName(array $lines, callable $isOwn): ?string
     {
         foreach (array_slice($lines, 0, 20) as $i => $line) {
-            // PLZ-Ort-Zeile (AT 4-stellig, DE 5-stellig).
-            if (preg_match('/^(?:A-|D-)?\d{4,5}\s+\p{Lu}/u', $line) !== 1) {
+            // PLZ-Ort-Zeile (AT 4-stellig, DE 5-stellig); Ortsnamen
+            // klein zu schreiben kommt vor — nur ein Buchstabe zählt.
+            if (preg_match('/^(?:A-|D-)?\d{4,5}\s+\p{L}/u', $line) !== 1) {
                 continue;
             }
 

@@ -166,6 +166,8 @@ class InvoiceScanController extends Controller
             $notes = array_filter([
                 $scan->partnerUid !== null ? "UID: {$scan->partnerUid}" : null,
                 $scan->partnerIban !== null ? "IBAN: {$scan->partnerIban}" : null,
+                $scan->partnerEmail !== null ? "E-Mail: {$scan->partnerEmail}" : null,
+                $scan->partnerPhone !== null ? "Telefon: {$scan->partnerPhone}" : null,
             ]);
 
             return [

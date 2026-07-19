@@ -96,18 +96,19 @@ class InvoiceScanner
             - partner_name: der Rechnungssteller (Absender), nie der Empfänger. Firmenname wie gedruckt, ohne Adresszusätze. Achtung: Firmenname, UID und IBAN des Ausstellers stehen sehr oft in der FUSSZEILE des Dokuments — dort nachsehen, nicht nur im Briefkopf.
             - partner_uid: UID-Nummer des Rechnungsstellers (z. B. ATU12345678), falls angegeben.
             - partner_iban: IBAN des Rechnungsstellers, falls angegeben, ohne Leerzeichen.
+            - partner_email / partner_phone: E-Mail und Telefonnummer des Rechnungsstellers, falls angegeben.
             RULE,
             ScanDocumentKind::OutgoingInvoice => <<<'RULE'
             Das Dokument ist eine AUSGANGSRECHNUNG unseres eigenen Bauunternehmens an einen Kunden.
             - partner_name: der RECHNUNGSEMPFÄNGER (Kunde), nie der Absender. Der Empfänger steht im ANSCHRIFTENFELD (Brieffenster oben, wo bei einem Brief die Adresse steht): Name, darunter Straße, darunter PLZ und Ort. Auch Privatpersonen sind gültige Empfänger. Name wie gedruckt, ohne Adresszusätze.
             - partner_uid: UID-Nummer des Empfängers, falls angegeben (die UID des Absenders ignorieren).
-            - partner_iban: immer null (die IBAN auf dem Beleg gehört dem Absender).
+            - partner_iban / partner_email / partner_phone: immer null (diese Angaben auf dem Beleg gehören dem Absender).
             RULE,
             ScanDocumentKind::Offer => <<<'RULE'
             Das Dokument ist ein ANGEBOT unseres eigenen Bauunternehmens an einen Kunden.
             - partner_name: der ANGEBOTSEMPFÄNGER (Kunde), nie der Absender. Der Empfänger steht im ANSCHRIFTENFELD (Brieffenster oben, wo bei einem Brief die Adresse steht); auch Privatpersonen sind gültige Empfänger.
             - partner_uid: UID-Nummer des Empfängers, falls angegeben (die UID des Absenders ignorieren).
-            - partner_iban: immer null.
+            - partner_iban / partner_email / partner_phone: immer null.
             - doc_number: die Angebotsnummer.
             - subject: die angebotene Leistung bzw. das Bauvorhaben in wenigen Worten (inkl. Ort, falls genannt).
             RULE,
@@ -141,6 +142,8 @@ class InvoiceScanner
                 'partner_name' => $nullable('string'),
                 'partner_uid' => $nullable('string'),
                 'partner_iban' => $nullable('string'),
+                'partner_email' => $nullable('string'),
+                'partner_phone' => $nullable('string'),
                 'payment_target_days' => $nullable('integer'),
                 'skonto_percent' => $nullable('number'),
                 'skonto_days' => $nullable('integer'),
@@ -153,7 +156,7 @@ class InvoiceScanner
                 'subject' => $nullable('string'),
             ],
             'required' => [
-                'partner_name', 'partner_uid', 'partner_iban', 'payment_target_days',
+                'partner_name', 'partner_uid', 'partner_iban', 'partner_email', 'partner_phone', 'payment_target_days',
                 'skonto_percent', 'skonto_days', 'doc_number', 'doc_date',
                 'net', 'vat_rate', 'gross', 'reverse_charge', 'subject',
             ],

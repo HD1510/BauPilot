@@ -167,3 +167,51 @@ test('anschriftenfeld: eigene absenderadresse wird nicht zum kunden', function (
     expect(TextInvoiceParser::parse($text, ScanDocumentKind::OutgoingInvoice, ownCompanyName: 'Bau GmbH')->partnerName)
         ->toBeNull();
 });
+
+test('praxisbeleg: einzelunternehmer-absenderzeile, kleinbuchstaben-ort, e-mail und telefon', function () {
+    // Struktur der echten Beispielrechnung (HD5): kein Firmenwortlaut
+    // mit Rechtsform, Absenderzeile mit · getrennt, Daten in Kopf UND Fuß.
+    $text = implode("\n", [
+        'HD5',
+        'while(idea) → code();',
+        'Herbert Dienbauer — HD5 · Eisenstädterstraße 32 · 7202 Bad Sauerbrunn',
+        'Tets',
+        'test',
+        '7202 test',
+        "Rechnungsnummer\t2026-001",
+        "Rechnungsdatum\t19.07.2026",
+        'Rechnung 2026-001',
+        "POS. BESCHREIBUNG\tMENGE EINHEIT\tEINZELPREIS\tBETRAG",
+        "1 Webseite\t1,00Pauschale\t500,00 € 500,00 €",
+        "Netto\t600,00 €",
+        "Gesamtbetrag\t600,00 €",
+        'Umsatzsteuerbefreit gemäß § 6 Abs. 1 Z 27 UStG (Kleinunternehmerregelung).',
+        'Zahlbar innerhalb von 8 Tagen bis 27.07.2026 auf IBAN AT35 3300 0000 0182 5231, BIC RLBBAT2E',
+        'Vielen Dank für Ihren Auftrag!',
+        'Herbert Dienbauer — HD5 · Eisenstädterstraße 32 · 7202 Bad Sauerbrunn · office@hd5.at · +43 664 5368836',
+    ]);
+
+    // Als Eingangsrechnung: Aussteller samt Kontaktdaten aus der Absenderzeile.
+    $in = TextInvoiceParser::parse($text, ScanDocumentKind::IncomingInvoice, ownCompanyName: 'Bau GmbH');
+
+    expect($in->partnerName)->toBe('Herbert Dienbauer — HD5')
+        ->and($in->partnerEmail)->toBe('office@hd5.at')
+        ->and($in->partnerPhone)->toBe('+43 664 5368836')
+        ->and($in->partnerIban)->toBe('AT353300000001825231')
+        ->and($in->paymentTargetDays)->toBe(8)
+        ->and($in->docNumber)->toBe('2026-001')
+        ->and($in->docDate)->toBe('2026-07-19')
+        ->and($in->net)->toBe(600.0)
+        ->and($in->gross)->toBe(600.0)
+        // § 6 (Kleinunternehmer) ist KEIN Reverse Charge (§ 19).
+        ->and($in->reverseCharge)->toBeFalse();
+
+    // Als Ausgangsrechnung: Kunde aus dem Anschriftenfeld — auch mit
+    // kleingeschriebenem Ort; „BETRAG" wird nie zur Firma (AG-Wortgrenze).
+    $out = TextInvoiceParser::parse($text, ScanDocumentKind::OutgoingInvoice, ownCompanyName: 'Herbert Dienbauer — HD5');
+
+    expect($out->partnerName)->toBe('Tets')
+        ->and($out->partnerEmail)->toBeNull()
+        ->and($out->docNumber)->toBe('2026-001')
+        ->and($out->paymentTargetDays)->toBe(8);
+});
