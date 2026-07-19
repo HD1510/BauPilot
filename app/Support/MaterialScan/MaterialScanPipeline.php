@@ -2,10 +2,9 @@
 
 namespace App\Support\MaterialScan;
 
+use App\Support\Pdf\PdfTextExtractor;
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
-use Smalot\PdfParser\Parser as PdfParser;
-use Throwable;
 
 /**
  * Scan-Leiter für Material-Positionen (Preislisten, Rechnungen,
@@ -72,12 +71,6 @@ class MaterialScanPipeline
 
     private function extractText(string $pdfContent): string
     {
-        try {
-            $text = (new PdfParser)->parseContent($pdfContent)->getText();
-        } catch (Throwable) {
-            return '';
-        }
-
-        return trim($text);
+        return PdfTextExtractor::fromContent($pdfContent);
     }
 }

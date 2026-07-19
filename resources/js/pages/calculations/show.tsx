@@ -793,8 +793,13 @@ function PlanImportCard({
             } | null;
 
             if (!response.ok || !json?.rooms) {
+                // 413 kommt vom Webserver (client_max_body_size), bevor
+                // die Anwendung überhaupt etwas sieht.
                 toast.error(
-                    json?.message ?? 'Der Plan konnte nicht gelesen werden.',
+                    response.status === 413
+                        ? 'Die Datei ist größer, als der Server annimmt — in der Server-Konfiguration client_max_body_size bzw. upload_max_filesize erhöhen (z. B. auf 50 MB).'
+                        : (json?.message ??
+                              `Der Plan konnte nicht gelesen werden (Fehler ${response.status}).`),
                 );
 
                 return;

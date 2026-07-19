@@ -2,11 +2,10 @@
 
 namespace App\Support\InvoiceScan;
 
+use App\Support\Pdf\PdfTextExtractor;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
-use Smalot\PdfParser\Parser as PdfParser;
-use Throwable;
 
 /**
  * Scan-Leiter für Belege (Eingangs-/Ausgangsrechnungen, Angebote):
@@ -80,13 +79,7 @@ class InvoiceScanPipeline
 
     private function extractText(string $pdfContent): string
     {
-        try {
-            $text = (new PdfParser)->parseContent($pdfContent)->getText();
-        } catch (Throwable) {
-            return '';
-        }
-
-        return trim($text);
+        return PdfTextExtractor::fromContent($pdfContent);
     }
 
     private function isStrong(ScannedInvoice $invoice): bool

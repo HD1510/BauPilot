@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Support\Calculation\PlanRoomParser;
 use App\Support\Calculation\RoomCalculator;
 use App\Support\Calculation\RoomCsvImporter;
+use App\Support\Pdf\PdfTextExtractor;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,8 +21,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use Smalot\PdfParser\Parser as PdfParser;
-use Throwable;
 
 /**
  * Baukalkulation: Räume mit Formen und Belägen erfassen, Gewerke-Mengen
@@ -185,11 +184,7 @@ class CalculationController extends Controller
         /** @var UploadedFile $file */
         $file = $request->file('file');
 
-        try {
-            $text = trim((new PdfParser)->parseFile((string) $file->getRealPath())->getText());
-        } catch (Throwable) {
-            $text = '';
-        }
+        $text = PdfTextExtractor::fromFile((string) $file->getRealPath());
 
         if ($text === '') {
             return response()->json([
