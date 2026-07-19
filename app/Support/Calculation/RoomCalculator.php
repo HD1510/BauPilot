@@ -28,8 +28,12 @@ class RoomCalculator
     /**
      * @return array{
      *     area: float, perimeter: float,
-     *     parquet_area: float, floor_tile_area: float, wall_tile_area: float,
-     *     silicone: float, skirting: float, painting_area: float,
+     *     parquet_area: float,
+     *     floor_tile_area_raw: float, floor_tile_area: float,
+     *     wall_tile_area_raw: float, wall_tile_area: float,
+     *     silicone: float,
+     *     skirting_parquet: float, skirting_tiles: float, skirting: float,
+     *     painting_area: float,
      *     cost: float
      * }
      */
@@ -50,15 +54,15 @@ class RoomCalculator
             : 0.0;
 
         // Wandfliesen-Räume (Bad, WC …) bekommen auch Bodenfliesen.
-        $floorTileArea = in_array($room->material, [RoomMaterial::FloorTiles, RoomMaterial::WallTiles], true)
-            ? $area * $wasteFactor
+        // Die Fliesenflächen gibt es ohne und mit Verschnitt — bestellt
+        // wird mit, verlegt ohne.
+        $floorTileAreaRaw = in_array($room->material, [RoomMaterial::FloorTiles, RoomMaterial::WallTiles], true)
+            ? $area
             : 0.0;
 
-        $wallTileArea = 0.0;
-
-        if ($room->material === RoomMaterial::WallTiles) {
-            $wallTileArea = $perimeter * min($height, $tileHeight) * $wasteFactor;
-        }
+        $wallTileAreaRaw = $room->material === RoomMaterial::WallTiles
+            ? $perimeter * min($height, $tileHeight)
+            : 0.0;
 
         $silicone = match ($room->material) {
             // Kanten (Außenecken) plus Boden-/Wannenfuge unten und
@@ -68,7 +72,10 @@ class RoomCalculator
             RoomMaterial::Parquet => 0.0,
         };
 
-        $skirting = $room->material === RoomMaterial::WallTiles ? 0.0 : $edgePerimeter;
+        // Sockelleisten getrennt nach Belag — Parkett- und Fliesensockel
+        // sind unterschiedliche Produkte.
+        $skirtingParquet = $room->material === RoomMaterial::Parquet ? $edgePerimeter : 0.0;
+        $skirtingTiles = $room->material === RoomMaterial::FloorTiles ? $edgePerimeter : 0.0;
 
         $paintingArea = $room->material === RoomMaterial::WallTiles
             ? $perimeter * max($height - $tileHeight, 0) + $area
@@ -78,10 +85,14 @@ class RoomCalculator
             'area' => $this->round($area),
             'perimeter' => $this->round($perimeter),
             'parquet_area' => $this->round($parquetArea),
-            'floor_tile_area' => $this->round($floorTileArea),
-            'wall_tile_area' => $this->round($wallTileArea),
+            'floor_tile_area_raw' => $this->round($floorTileAreaRaw),
+            'floor_tile_area' => $this->round($floorTileAreaRaw * $wasteFactor),
+            'wall_tile_area_raw' => $this->round($wallTileAreaRaw),
+            'wall_tile_area' => $this->round($wallTileAreaRaw * $wasteFactor),
             'silicone' => $this->round($silicone),
-            'skirting' => $this->round($skirting),
+            'skirting_parquet' => $this->round($skirtingParquet),
+            'skirting_tiles' => $this->round($skirtingTiles),
+            'skirting' => $this->round($skirtingParquet + $skirtingTiles),
             'painting_area' => $this->round($paintingArea),
         ];
 
@@ -106,8 +117,11 @@ class RoomCalculator
     public function totals(iterable $rooms, Calculation $calculation): array
     {
         $totals = [
-            'area' => 0.0, 'parquet_area' => 0.0, 'floor_tile_area' => 0.0,
-            'wall_tile_area' => 0.0, 'silicone' => 0.0, 'skirting' => 0.0,
+            'area' => 0.0, 'parquet_area' => 0.0,
+            'floor_tile_area_raw' => 0.0, 'floor_tile_area' => 0.0,
+            'wall_tile_area_raw' => 0.0, 'wall_tile_area' => 0.0,
+            'silicone' => 0.0,
+            'skirting_parquet' => 0.0, 'skirting_tiles' => 0.0, 'skirting' => 0.0,
             'painting_area' => 0.0, 'cost' => 0.0,
         ];
 

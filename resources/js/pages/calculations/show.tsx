@@ -26,9 +26,13 @@ type Quantities = {
     area: number;
     perimeter: number;
     parquet_area: number;
+    floor_tile_area_raw: number;
     floor_tile_area: number;
+    wall_tile_area_raw: number;
     wall_tile_area: number;
     silicone: number;
+    skirting_parquet: number;
+    skirting_tiles: number;
     skirting: number;
     painting_area: number;
     cost: number;
@@ -186,18 +190,33 @@ function TotalsCard({
             value: totals.parquet_area,
             unit: 'm²',
         },
+        // Fliesen ohne und mit Verschnitt untereinander — verlegt wird
+        // ohne, bestellt mit.
         {
-            label: 'Bodenfliesen (inkl. Verschnitt)',
-            value: totals.floor_tile_area,
+            label: 'Bodenfliesen',
+            value: totals.floor_tile_area_raw,
+            withWaste: totals.floor_tile_area,
             unit: 'm²',
         },
         {
-            label: 'Wandfliesen (inkl. Verschnitt)',
-            value: totals.wall_tile_area,
+            label: 'Wandfliesen',
+            value: totals.wall_tile_area_raw,
+            withWaste: totals.wall_tile_area,
             unit: 'm²',
         },
         { label: 'Silikonfugen', value: totals.silicone, unit: 'lfm' },
-        { label: 'Sockelleisten', value: totals.skirting, unit: 'lfm' },
+        // Sockelleisten getrennt — Parkett- und Fliesensockel sind
+        // unterschiedliche Produkte.
+        {
+            label: 'Sockelleisten Parkett',
+            value: totals.skirting_parquet,
+            unit: 'lfm',
+        },
+        {
+            label: 'Sockelleisten Fliesen',
+            value: totals.skirting_tiles,
+            unit: 'lfm',
+        },
         { label: 'Malerfläche', value: totals.painting_area, unit: 'm²' },
     ].filter((item) => item.value > 0);
 
@@ -209,9 +228,28 @@ function TotalsCard({
                         <div className="text-xs text-muted-foreground">
                             {item.label}
                         </div>
-                        <div className="font-medium">
-                            {item.value.toLocaleString('de-AT')} {item.unit}
-                        </div>
+                        {'withWaste' in item && item.withWaste !== undefined ? (
+                            <>
+                                <div className="font-medium">
+                                    {item.value.toLocaleString('de-AT')}{' '}
+                                    {item.unit}{' '}
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        ohne Verschnitt
+                                    </span>
+                                </div>
+                                <div className="font-medium">
+                                    {item.withWaste.toLocaleString('de-AT')}{' '}
+                                    {item.unit}{' '}
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        mit Verschnitt
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="font-medium">
+                                {item.value.toLocaleString('de-AT')} {item.unit}
+                            </div>
+                        )}
                     </div>
                 ))}
                 <div className="ml-auto text-right">
@@ -632,7 +670,7 @@ function CsvImport({ calculationId }: { calculationId: number }) {
             <Heading
                 variant="small"
                 title="Räume aus CSV/TXT importieren"
-                description="Spalten wie Name, Länge, Breite, Höhe, Material (Parkett/Bodenfliesen/Wandfliesen), Kanten, Tür, Fenster — Trenner , ; oder Tab"
+                description="Spalten wie Name, Länge, Breite, Höhe, Material (Parkett/Bodenfliesen/Wandfliesen), Kanten, Tür — Trenner , ; oder Tab"
             />
             <input
                 ref={fileInput}

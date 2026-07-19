@@ -44,6 +44,8 @@ test('rechteck mit parkett: fläche, verschnitt, sockel, maler', function () {
         ->and($q['parquet_area'])->toBe(23.0)   // 20 × 1,15
         ->and($q['floor_tile_area'])->toBe(0.0)
         ->and($q['silicone'])->toBe(0.0)
+        ->and($q['skirting_parquet'])->toBe(18.0)
+        ->and($q['skirting_tiles'])->toBe(0.0)
         ->and($q['skirting'])->toBe(18.0)
         ->and($q['painting_area'])->toBe(65.0)  // 18 × 2,5 + 20
         ->and($q['cost'])->toBe(23.0 * 40 + 18.0 * 10 + 65.0 * 12);
@@ -71,8 +73,10 @@ test('wandfliesen: fliesenband bis fliesenhöhe, maler übernimmt den rest', fun
     // Umfang 8,8; Band 8,8 × 2,1 = 18,48; × 1,15 = 21,25
     $q = (new RoomCalculator)->quantities($room, calcFixture());
 
-    expect($q['wall_tile_area'])->toBe(21.25)
-        ->and($q['floor_tile_area'])->toBe(5.52) // 4,8 × 1,15
+    expect($q['wall_tile_area_raw'])->toBe(18.48) // 8,8 × 2,1 — ohne Verschnitt
+        ->and($q['wall_tile_area'])->toBe(21.25)
+        ->and($q['floor_tile_area_raw'])->toBe(4.8)
+        ->and($q['floor_tile_area'])->toBe(5.52)  // 4,8 × 1,15
         ->and($q['silicone'])->toBe(2 * 2.1 + 8.8 * 2)
         ->and($q['skirting'])->toBe(0.0)
         ->and($q['painting_area'])->toBe(round(8.8 * 0.4 + 4.8, 2));
