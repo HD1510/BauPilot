@@ -1,10 +1,7 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import {
-    EmployeeForm
-    
-} from '@/components/master-data/employee-form';
-import type {UserOption} from '@/components/master-data/employee-form';
+import { EmployeeForm } from '@/components/master-data/employee-form';
+import type { UserOption } from '@/components/master-data/employee-form';
 
 export default function EmployeesCreate({ users }: { users: UserOption[] }) {
     return (

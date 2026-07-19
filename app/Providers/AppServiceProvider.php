@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ChangeOrder;
+use App\Models\Employee;
 use App\Models\ExternalOffer;
 use App\Models\IncomingInvoice;
 use App\Models\Offer;
@@ -56,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
             'outgoing_invoice' => OutgoingInvoice::class,
             'incoming_invoice' => IncomingInvoice::class,
             'site_report' => SiteReport::class,
+            'employee' => Employee::class,
         ]);
     }
 

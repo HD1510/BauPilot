@@ -9,6 +9,8 @@ enum DocumentCategory: string
     case Plan = 'plan';
     case Photo = 'photo';
     case DeliveryNote = 'delivery_note';
+    case Contract = 'contract';
+    case Certificate = 'certificate';
     case Other = 'other';
 
     public function label(): string
@@ -19,6 +21,8 @@ enum DocumentCategory: string
             self::Plan => 'Plan',
             self::Photo => 'Foto',
             self::DeliveryNote => 'Lieferschein',
+            self::Contract => 'Arbeitsvertrag',
+            self::Certificate => 'Ausbildungsnachweis',
             self::Other => 'Sonstiges',
         };
     }

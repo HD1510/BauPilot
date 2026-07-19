@@ -1,10 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    EmptyState,
-    IndexShell
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState, IndexShell } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
 import { Badge } from '@/components/ui/badge';
 
 type EmployeeListItem = {
@@ -12,7 +8,12 @@ type EmployeeListItem = {
     name: string;
     overtime_rate: string | null;
     calc_hourly_rate: string | null;
-    user: { id: number; name: string; email: string } | null;
+    user: {
+        id: number;
+        name: string;
+        username: string | null;
+        email: string | null;
+    } | null;
     archived: boolean;
 };
 
@@ -52,7 +53,7 @@ export default function EmployeesIndex({
                             </div>
                             <div className="text-sm text-muted-foreground">
                                 {employee.user
-                                    ? `Benutzerkonto: ${employee.user.email}`
+                                    ? `Benutzerkonto: ${employee.user.username ?? employee.user.email}`
                                     : 'Kein Benutzerkonto'}
                             </div>
                         </div>

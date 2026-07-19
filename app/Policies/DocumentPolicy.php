@@ -15,6 +15,10 @@ class DocumentPolicy
 {
     private const FINANCIAL_TYPES = ['offer', 'outgoing_invoice', 'incoming_invoice', 'external_offer', 'change_order'];
 
+    // Personalakte (Arbeitsvertrag, Nachweise) ist vertraulich —
+    // wie Finanzdaten nur für admin/büro.
+    private const CONFIDENTIAL_TYPES = ['employee'];
+
     public function view(User $user, Document $document): bool
     {
         $role = $user->currentRole();
@@ -23,7 +27,9 @@ class DocumentPolicy
             return false;
         }
 
-        if (in_array($document->documentable_type, self::FINANCIAL_TYPES, true)) {
+        $restricted = array_merge(self::FINANCIAL_TYPES, self::CONFIDENTIAL_TYPES);
+
+        if (in_array($document->documentable_type, $restricted, true)) {
             return $role->canViewFinancials();
         }
 

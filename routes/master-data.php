@@ -3,6 +3,7 @@
 use App\Http\Controllers\MasterData\CostTypeController;
 use App\Http\Controllers\MasterData\CustomerContactController;
 use App\Http\Controllers\MasterData\CustomerController;
+use App\Http\Controllers\MasterData\EmployeeAccountController;
 use App\Http\Controllers\MasterData\EmployeeController;
 use App\Http\Controllers\MasterData\MaterialController;
 use App\Http\Controllers\MasterData\OvertimeController;
@@ -44,6 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::patch('employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::patch('employees/{employee}/archive', [EmployeeController::class, 'archive'])->name('employees.archive');
+    Route::post('employees/{employee}/account', [EmployeeAccountController::class, 'store'])->name('employees.account.store');
+    Route::patch('employees/{employee}/account/password', [EmployeeAccountController::class, 'updatePassword'])->name('employees.account.password');
 
     // Überstunden je Monat und Auszahlungen (M8; Lohndaten, admin/büro)
     Route::post('employees/{employee}/overtime-entries', [OvertimeController::class, 'storeEntry'])->name('employees.overtime-entries.store');

@@ -14,6 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 
 export type EmployeeFormValues = {
     name: string;
+    address: string | null;
+    birth_date: string | null;
+    started_on: string | null;
+    ended_on: string | null;
+    social_security_number: string | null;
+    iban: string | null;
     overtime_rate: string | null;
     calc_hourly_rate: string | null;
     user_id: number | null;
@@ -21,7 +27,7 @@ export type EmployeeFormValues = {
     lock_version?: number;
 };
 
-export type UserOption = { id: number; name: string; email: string };
+export type UserOption = { id: number; name: string; login: string };
 
 export function EmployeeForm({
     action,
@@ -41,6 +47,12 @@ export function EmployeeForm({
     const { data, setData, post, patch, processing, errors, transform } =
         useForm({
             name: employee?.name ?? '',
+            address: employee?.address ?? '',
+            birth_date: employee?.birth_date ?? '',
+            started_on: employee?.started_on ?? '',
+            ended_on: employee?.ended_on ?? '',
+            social_security_number: employee?.social_security_number ?? '',
+            iban: employee?.iban ?? '',
             overtime_rate: employee?.overtime_rate ?? '',
             calc_hourly_rate: employee?.calc_hourly_rate ?? '',
             user_id: employee?.user_id ? String(employee.user_id) : 'none',
@@ -76,6 +88,86 @@ export function EmployeeForm({
                     />
                     <InputError message={errors.name} />
                     <InputError message={errors.lock_version} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="address">Adresse</Label>
+                    <Input
+                        id="address"
+                        value={data.address}
+                        onChange={(e) => setData('address', e.target.value)}
+                        placeholder="Straße, PLZ Ort"
+                    />
+                    <InputError message={errors.address} />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="birth_date">Geburtsdatum</Label>
+                        <Input
+                            id="birth_date"
+                            type="date"
+                            value={data.birth_date}
+                            onChange={(e) =>
+                                setData('birth_date', e.target.value)
+                            }
+                        />
+                        <InputError message={errors.birth_date} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="started_on">Eintritt</Label>
+                        <Input
+                            id="started_on"
+                            type="date"
+                            value={data.started_on}
+                            onChange={(e) =>
+                                setData('started_on', e.target.value)
+                            }
+                        />
+                        <InputError message={errors.started_on} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="ended_on">Austritt</Label>
+                        <Input
+                            id="ended_on"
+                            type="date"
+                            value={data.ended_on}
+                            onChange={(e) =>
+                                setData('ended_on', e.target.value)
+                            }
+                        />
+                        <InputError message={errors.ended_on} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="social_security_number">
+                            SV-Nummer
+                        </Label>
+                        <Input
+                            id="social_security_number"
+                            value={data.social_security_number}
+                            onChange={(e) =>
+                                setData(
+                                    'social_security_number',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="z. B. 1234 010190"
+                        />
+                        <InputError message={errors.social_security_number} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="iban">IBAN</Label>
+                        <Input
+                            id="iban"
+                            value={data.iban}
+                            onChange={(e) => setData('iban', e.target.value)}
+                            placeholder="AT.."
+                        />
+                        <InputError message={errors.iban} />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -132,7 +224,7 @@ export function EmployeeForm({
                                     key={user.id}
                                     value={String(user.id)}
                                 >
-                                    {user.name} ({user.email})
+                                    {user.name} ({user.login})
                                 </SelectItem>
                             ))}
                         </SelectContent>

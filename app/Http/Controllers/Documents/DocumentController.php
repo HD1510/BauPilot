@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class DocumentController extends Controller
 {
-    private const ALLOWED_PARENTS = ['offer', 'project', 'change_order', 'external_offer', 'outgoing_invoice', 'incoming_invoice'];
+    private const ALLOWED_PARENTS = ['offer', 'project', 'change_order', 'external_offer', 'outgoing_invoice', 'incoming_invoice', 'employee'];
 
     private const MAX_FILE_KB = 25 * 1024; // 25 MB (Architekturblatt 6)
 

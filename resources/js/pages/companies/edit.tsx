@@ -152,114 +152,12 @@ export default function CompaniesEdit({ company, members, roles }: Props) {
 
                 <AddMemberForm companyId={company.id} roles={roles} />
 
-                <Separator />
-
-                <Heading
-                    variant="small"
-                    title="Mitarbeiterkonto anlegen"
-                    description="Neues Benutzerkonto mit Startpasswort — Zugangsdaten persönlich weitergeben; das Passwort kann die Person danach selbst ändern. Eine E-Mail-Bestätigung ist nicht nötig."
-                />
-
-                <CreateAccountForm companyId={company.id} roles={roles} />
+                <p className="max-w-xl text-sm text-muted-foreground">
+                    Neue Mitarbeiterkonten werden direkt beim Mitarbeiter
+                    angelegt (Stammdaten → Mitarbeiter).
+                </p>
             </div>
         </>
-    );
-}
-
-function CreateAccountForm({
-    companyId,
-    roles,
-}: {
-    companyId: number;
-    roles: RoleOption[];
-}) {
-    const { data, setData, post, processing, errors, reset } = useForm<{
-        name: string;
-        email: string;
-        password: string;
-        role: CompanyRole;
-    }>({ name: '', email: '', password: '', role: 'site' });
-
-    return (
-        <form
-            className="grid max-w-xl gap-3"
-            onSubmit={(event) => {
-                event.preventDefault();
-                post(`/companies/${companyId}/accounts`, {
-                    preserveScroll: true,
-                    onSuccess: () => reset('name', 'email', 'password'),
-                });
-            }}
-        >
-            <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-2">
-                    <Label htmlFor="account-name">Name</Label>
-                    <Input
-                        id="account-name"
-                        value={data.name}
-                        onChange={(event) =>
-                            setData('name', event.target.value)
-                        }
-                        required
-                    />
-                    <InputError message={errors.name} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="account-email">E-Mail-Adresse</Label>
-                    <Input
-                        id="account-email"
-                        type="email"
-                        value={data.email}
-                        onChange={(event) =>
-                            setData('email', event.target.value)
-                        }
-                        required
-                    />
-                    <InputError message={errors.email} />
-                </div>
-            </div>
-            <div className="flex items-end gap-3">
-                <div className="grid flex-1 gap-2">
-                    <Label htmlFor="account-password">
-                        Startpasswort (mind. 8 Zeichen)
-                    </Label>
-                    <Input
-                        id="account-password"
-                        type="text"
-                        autoComplete="off"
-                        value={data.password}
-                        onChange={(event) =>
-                            setData('password', event.target.value)
-                        }
-                        required
-                    />
-                    <InputError message={errors.password ?? errors.role} />
-                </div>
-                <Select
-                    value={data.role}
-                    onValueChange={(role) =>
-                        setData('role', role as CompanyRole)
-                    }
-                >
-                    <SelectTrigger
-                        className="w-40"
-                        aria-label="Rolle des neuen Kontos"
-                    >
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {roles.map((role) => (
-                            <SelectItem key={role.value} value={role.value}>
-                                {role.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button type="submit" disabled={processing}>
-                    Konto anlegen
-                </Button>
-            </div>
-        </form>
     );
 }
 

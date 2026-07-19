@@ -7,8 +7,10 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -46,6 +48,28 @@ class FortifyServiceProvider extends ServiceProvider
         /* @chisel-registration */
         Fortify::createUsersUsing(CreateNewUser::class);
         /* @end-chisel-registration */
+
+        // Anmeldung per Benutzername ODER E-Mail-Adresse: Mitarbeiter-
+        // konten haben nur einen Benutzernamen, ältere Konten nur eine
+        // E-Mail. Das Eingabefeld heißt technisch weiterhin „email".
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $login = Str::lower(trim((string) $request->input(Fortify::username())));
+
+            if ($login === '') {
+                return null;
+            }
+
+            $user = User::query()
+                ->where('username', $login)
+                ->orWhereRaw('lower(email) = ?', [$login])
+                ->first();
+
+            if ($user !== null && Hash::check((string) $request->input('password'), $user->password)) {
+                return $user;
+            }
+
+            return null;
+        });
     }
 
     /**

@@ -58,7 +58,9 @@ async function saveDocumentLocally(document: DocumentItem): Promise<void> {
     }
 }
 
-const categories = [
+export type CategoryOption = { value: string; label: string };
+
+const defaultCategories: CategoryOption[] = [
     { value: 'invoice', label: 'Rechnung' },
     { value: 'offer', label: 'Angebot' },
     { value: 'plan', label: 'Plan' },
@@ -80,6 +82,7 @@ export function DocumentsSection({
     canUpload,
     defaultCategory = 'other',
     photoGallery = false,
+    categories = defaultCategories,
 }: {
     documentableType: string;
     documentableId: number;
@@ -89,6 +92,8 @@ export function DocumentsSection({
     canUpload?: boolean;
     defaultCategory?: string;
     photoGallery?: boolean;
+    /** Auswahlliste je Bereich — z. B. Arbeitsvertrag beim Mitarbeiter. */
+    categories?: CategoryOption[];
 }) {
     const uploadAllowed = canUpload ?? canWrite;
     const photos = photoGallery
@@ -194,6 +199,7 @@ export function DocumentsSection({
                     documentableId={documentableId}
                     defaultCategory={defaultCategory}
                     withCamera={photoGallery}
+                    categories={categories}
                 />
             )}
         </div>
@@ -205,11 +211,13 @@ function UploadForm({
     documentableId,
     defaultCategory,
     withCamera,
+    categories,
 }: {
     documentableType: string;
     documentableId: number;
     defaultCategory: string;
     withCamera: boolean;
+    categories: CategoryOption[];
 }) {
     const cameraInput = useRef<HTMLInputElement>(null);
     const { data, setData, post, processing, errors, reset } = useForm<{

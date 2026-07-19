@@ -16,7 +16,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('companies/{company}/switch', CompanySwitchController::class)->name('companies.switch');
 
     Route::post('companies/{company}/members', [CompanyMemberController::class, 'store'])->name('companies.members.store');
-    Route::post('companies/{company}/accounts', [CompanyMemberController::class, 'storeAccount'])->name('companies.accounts.store');
     Route::patch('companies/{company}/members/{user}', [CompanyMemberController::class, 'update'])->name('companies.members.update');
     Route::delete('companies/{company}/members/{user}', [CompanyMemberController::class, 'destroy'])->name('companies.members.destroy');
 });

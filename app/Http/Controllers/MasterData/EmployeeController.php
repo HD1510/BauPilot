@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\MasterData;
 
+use App\Enums\CompanyRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MasterData\EmployeeRequest;
+use App\Models\Document;
 use App\Models\Employee;
 use App\Models\OvertimeEntry;
 use App\Models\OvertimePayout;
@@ -28,7 +30,7 @@ class EmployeeController extends Controller
         $employees = Employee::query()
             ->where('active', ! $archived)
             ->when($q !== '', fn ($query) => $query->whereLike('name', "%{$q}%"))
-            ->with('user:id,name,email')
+            ->with('user:id,name,username,email')
             ->orderBy('name')
             ->get()
             ->map(fn (Employee $employee): array => [
@@ -36,7 +38,7 @@ class EmployeeController extends Controller
                 'name' => $employee->name,
                 'overtime_rate' => $employee->overtime_rate,
                 'calc_hourly_rate' => $employee->calc_hourly_rate,
-                'user' => $employee->user?->only(['id', 'name', 'email']),
+                'user' => $employee->user?->only(['id', 'name', 'username', 'email']),
                 'archived' => ! $employee->active,
             ]);
 
@@ -89,10 +91,20 @@ class EmployeeController extends Controller
             ]
             : null;
 
+        $canWrite = Gate::allows('update', $employee);
+
         return Inertia::render('employees/edit', [
             'employee' => [
                 'id' => $employee->id,
                 'name' => $employee->name,
+                // Personalakte (Adresse, SV-Nummer, IBAN …) ist
+                // vertraulich — die Baustelle bekommt sie gar nicht.
+                'address' => $canWrite ? $employee->address : null,
+                'birth_date' => $canWrite ? $employee->birth_date?->toDateString() : null,
+                'started_on' => $canWrite ? $employee->started_on?->toDateString() : null,
+                'ended_on' => $canWrite ? $employee->ended_on?->toDateString() : null,
+                'social_security_number' => $canWrite ? $employee->social_security_number : null,
+                'iban' => $canWrite ? $employee->iban : null,
                 'overtime_rate' => $employee->overtime_rate,
                 'calc_hourly_rate' => $employee->calc_hourly_rate,
                 'user_id' => $employee->user_id,
@@ -101,8 +113,24 @@ class EmployeeController extends Controller
                 'lock_version' => $employee->lock_version,
             ],
             'users' => $this->userOptions(),
-            'canWrite' => Gate::allows('update', $employee),
+            'canWrite' => $canWrite,
             'overtime' => $overtime,
+            'account' => $employee->user?->only(['id', 'name', 'username', 'email']),
+            'canManageAccount' => Gate::allows('manageMembers', app(CompanyContext::class)->requireCompany()),
+            'roles' => collect(CompanyRole::cases())->map(fn (CompanyRole $role): array => [
+                'value' => $role->value,
+                'label' => $role->label(),
+            ])->values()->all(),
+            'documents' => $canWrite
+                ? $employee->documents()->latest('id')->get()
+                    ->map(fn (Document $document): array => [
+                        'id' => $document->id,
+                        'original_name' => $document->original_name,
+                        'category_label' => $document->category->label(),
+                        'size' => $document->size,
+                        'is_image' => str_starts_with($document->mime, 'image/'),
+                    ])->values()
+                : null,
         ]);
     }
 
@@ -133,15 +161,19 @@ class EmployeeController extends Controller
     /**
      * Benutzerkonten der aktiven Firma für die optionale Verknüpfung.
      *
-     * @return array<int, array{id: int, name: string, email: string}>
+     * @return array<int, array{id: int, name: string, login: string}>
      */
     private function userOptions(): array
     {
         return app(CompanyContext::class)->requireCompany()
             ->users()
             ->orderBy('name')
-            ->get(['users.id', 'users.name', 'users.email'])
-            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
+            ->get(['users.id', 'users.name', 'users.username', 'users.email'])
+            ->map(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'login' => $user->username ?? $user->email ?? '—',
+            ])
             ->values()
             ->all();
     }

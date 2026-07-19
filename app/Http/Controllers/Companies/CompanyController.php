@@ -92,7 +92,8 @@ class CompanyController extends Controller
                 ->map(fn ($member): array => [
                     'id' => $member->id,
                     'name' => $member->name,
-                    'email' => $member->email,
+                    // Konten ohne E-Mail melden sich per Benutzername an.
+                    'email' => $member->email ?? $member->username,
                     'role' => $member->pivot?->role,
                 ]),
             'roles' => collect(CompanyRole::cases())->map(fn (CompanyRole $role): array => [
