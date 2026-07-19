@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
+    Calculator,
     CalendarClock,
     Clock,
     FileSpreadsheet,
@@ -73,13 +74,25 @@ const masterDataNavItems: NavItem[] = [
 
 const projectNavItems: NavItem[] = [
     { title: 'Angebote', href: '/offers', icon: FileText },
+    { title: 'Baukalkulation', href: '/calculations', icon: Calculator },
     { title: 'Projekte', href: '/projects', icon: FolderKanban },
     { title: 'Regieberichte', href: '/site-reports', icon: FileSignature },
 ];
 
+// Preise und Angebotssummen — für die Rolle Baustelle ausgeblendet.
+const financialProjectHrefs = ['/offers', '/calculations'];
+
 const invoiceNavItems: NavItem[] = [
-    { title: 'Ausgangsrechnungen', href: '/outgoing-invoices', icon: FileOutput },
-    { title: 'Eingangsrechnungen', href: '/incoming-invoices', icon: FileInput },
+    {
+        title: 'Ausgangsrechnungen',
+        href: '/outgoing-invoices',
+        icon: FileOutput,
+    },
+    {
+        title: 'Eingangsrechnungen',
+        href: '/incoming-invoices',
+        icon: FileInput,
+    },
     { title: 'Excel-Import', href: '/imports', icon: FileSpreadsheet },
 ];
 
@@ -108,7 +121,10 @@ export function AppSidebar() {
                         tenancy.canViewFinancials
                             ? projectNavItems
                             : projectNavItems.filter(
-                                  (item) => item.href !== '/offers',
+                                  (item) =>
+                                      !financialProjectHrefs.includes(
+                                          item.href as string,
+                                      ),
                               )
                     }
                     label="Vertrieb & Projekte"

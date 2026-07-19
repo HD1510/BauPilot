@@ -8,6 +8,8 @@ use App\Http\Controllers\Invoicing\OutgoingInvoiceController;
 use App\Http\Controllers\MasterData\PartnerQuickCreateController;
 use App\Http\Controllers\Projects\ProjectNoteController;
 use App\Http\Controllers\Projects\TaskController;
+use App\Http\Controllers\Sales\CalculationController;
+use App\Http\Controllers\Sales\CalculationRoomController;
 use App\Http\Controllers\Sales\OfferController;
 use App\Http\Controllers\Sales\ProjectController;
 use App\Http\Controllers\Sales\ProjectInvoiceController;
@@ -24,6 +26,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('offers/{offer}/edit', [OfferController::class, 'edit'])->name('offers.edit');
     Route::patch('offers/{offer}', [OfferController::class, 'update'])->name('offers.update');
     Route::post('offers/{offer}/convert', [OfferController::class, 'convert'])->name('offers.convert');
+
+    // Baukalkulation: Räume, Gewerke-Mengen, Preise (Finanzdaten)
+    Route::get('calculations', [CalculationController::class, 'index'])->name('calculations.index');
+    Route::post('calculations', [CalculationController::class, 'store'])->name('calculations.store');
+    Route::get('calculations/{calculation}', [CalculationController::class, 'show'])->name('calculations.show');
+    Route::patch('calculations/{calculation}', [CalculationController::class, 'update'])->name('calculations.update');
+    Route::delete('calculations/{calculation}', [CalculationController::class, 'destroy'])->name('calculations.destroy');
+    Route::post('calculations/{calculation}/import', [CalculationController::class, 'import'])->name('calculations.import');
+    Route::post('calculations/{calculation}/rooms', [CalculationRoomController::class, 'store'])->name('calculations.rooms.store');
+    Route::patch('calculations/{calculation}/rooms/{room}', [CalculationRoomController::class, 'update'])->name('calculations.rooms.update');
+    Route::delete('calculations/{calculation}/rooms/{room}', [CalculationRoomController::class, 'destroy'])->name('calculations.rooms.destroy');
 
     // Projekte als Drehscheibe
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');

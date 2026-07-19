@@ -6,9 +6,11 @@ use App\Enums\DocumentCategory;
 use App\Enums\OfferStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\OfferRequest;
+use App\Models\Calculation;
 use App\Models\Customer;
 use App\Models\Offer;
 use App\Models\Project;
+use App\Support\Calculation\RoomCalculator;
 use App\Support\InvoiceScan\InvoiceScanner;
 use App\Support\InvoiceScan\ScannedFileAttacher;
 use Illuminate\Http\RedirectResponse;
@@ -57,7 +59,7 @@ class OfferController extends Controller
         ]);
     }
 
-    public function create(InvoiceScanner $scanner): Response
+    public function create(Request $request, InvoiceScanner $scanner): Response
     {
         Gate::authorize('create', Offer::class);
 
@@ -65,7 +67,36 @@ class OfferController extends Controller
             'customers' => $this->customerOptions(),
             'statuses' => $this->statusOptions(),
             'scanImagesEnabled' => $scanner->enabled(),
+            'prefill' => $this->calculationPrefill($request),
         ]);
+    }
+
+    /**
+     * „Als Angebot übernehmen" aus der Baukalkulation: Summe und
+     * Beschreibung sind vorbefüllt, der Mensch prüft und speichert.
+     *
+     * @return array{offer_amount_net: string, description: string}|null
+     */
+    private function calculationPrefill(Request $request): ?array
+    {
+        $calculationId = $request->integer('calculation');
+
+        if ($calculationId <= 0) {
+            return null;
+        }
+
+        $calculation = Calculation::query()->whereKey($calculationId)->first();
+
+        if ($calculation === null) {
+            return null;
+        }
+
+        $total = app(RoomCalculator::class)->totals($calculation->rooms, $calculation)['cost'];
+
+        return [
+            'offer_amount_net' => number_format($total, 2, '.', ''),
+            'description' => "Laut Baukalkulation „{$calculation->name}“",
+        ];
     }
 
     public function store(OfferRequest $request, ScannedFileAttacher $attacher): RedirectResponse

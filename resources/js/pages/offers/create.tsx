@@ -20,10 +20,13 @@ export default function OffersCreate({
     customers,
     statuses,
     scanImagesEnabled,
+    prefill,
 }: {
     customers: Option[];
     statuses: StatusOption[];
     scanImagesEnabled: boolean;
+    /** Vorbefüllung aus der Baukalkulation („Als Angebot übernehmen"). */
+    prefill: Partial<OfferFormValues> | null;
 }) {
     const [customerList, setCustomerList] = useState(customers);
     const [scan, setScan] = useState<{
@@ -77,7 +80,7 @@ export default function OffersCreate({
                     key={scan?.key ?? 0}
                     action="/offers"
                     method="post"
-                    offer={scan?.offer}
+                    offer={scan?.offer ?? prefill ?? undefined}
                     scanToken={scan?.token}
                     customers={customerList}
                     statuses={statuses}
