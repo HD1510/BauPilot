@@ -110,3 +110,60 @@ test('briefkopf-heuristik rät auf eigenen belegen nie den partner', function ()
     expect(TextInvoiceParser::parse($text, ScanDocumentKind::OutgoingInvoice, ownCompanyName: 'Dienbauer GmbH')->partnerName)->toBeNull()
         ->and(TextInvoiceParser::parse($text, ScanDocumentKind::Offer)->partnerName)->toBeNull();
 });
+
+test('eingangsrechnung: lieferant wird auch in der fußzeile gefunden', function () {
+    // Kopf ohne Rechtsform (Logo/Anschrift), alle Firmendaten unten —
+    // wie bei vielen echten Rechnungen.
+    $lines = array_merge(
+        ['RECHNUNG', 'Bau GmbH', 'Musterstraße 1', '4020 Linz'],
+        array_fill(0, 14, 'Position Material und Arbeitszeit'),
+        ['Huber Transporte GmbH | Industriestraße 12, 4021 Linz | ATU12345678 | IBAN AT61 1904 3002 3457 3201'],
+    );
+
+    $invoice = TextInvoiceParser::parse(
+        implode("\n", $lines),
+        ScanDocumentKind::IncomingInvoice,
+        ownCompanyName: 'Bau GmbH',
+    );
+
+    expect($invoice->partnerName)->toBe('Huber Transporte GmbH');
+});
+
+test('ausgangsrechnung: kunde wird im anschriftenfeld gefunden — auch privat', function () {
+    $text = implode("\n", [
+        'Bau GmbH · Musterstraße 1 · 4020 Linz',
+        'Familie Maier',
+        'Ringstraße 5',
+        '4030 Linz',
+        'Rechnung Nr: 250200',
+    ]);
+
+    expect(TextInvoiceParser::parse($text, ScanDocumentKind::OutgoingInvoice, ownCompanyName: 'Bau GmbH')->partnerName)
+        ->toBe('Familie Maier');
+
+    // Mit „An:"-Beschriftung und Firma als Empfänger.
+    $text2 = implode("\n", [
+        'Bau GmbH',
+        'Musterstraße 1',
+        '4020 Linz',
+        'An: Wohnbau Steiner GmbH',
+        'Ringstraße 5',
+        '4030 Linz',
+    ]);
+
+    expect(TextInvoiceParser::parse($text2, ScanDocumentKind::Offer, ownCompanyName: 'Bau GmbH')->partnerName)
+        ->toBe('Wohnbau Steiner GmbH');
+});
+
+test('anschriftenfeld: eigene absenderadresse wird nicht zum kunden', function () {
+    // Nur der eigene Adressblock vorhanden — kein Vorschlag.
+    $text = implode("\n", [
+        'Bau GmbH',
+        'Musterstraße 1',
+        '4020 Linz',
+        'Rechnung Nr: 250201',
+    ]);
+
+    expect(TextInvoiceParser::parse($text, ScanDocumentKind::OutgoingInvoice, ownCompanyName: 'Bau GmbH')->partnerName)
+        ->toBeNull();
+});

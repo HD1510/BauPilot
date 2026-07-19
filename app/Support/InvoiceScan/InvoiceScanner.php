@@ -93,19 +93,19 @@ class InvoiceScanner
         $partnerRule = match ($kind) {
             ScanDocumentKind::IncomingInvoice => <<<'RULE'
             Das Dokument ist eine EINGANGSRECHNUNG (Lieferantenrechnung an unser Bauunternehmen).
-            - partner_name: der Rechnungssteller (Absender), nie der Empfänger. Firmenname wie gedruckt, ohne Adresszusätze.
+            - partner_name: der Rechnungssteller (Absender), nie der Empfänger. Firmenname wie gedruckt, ohne Adresszusätze. Achtung: Firmenname, UID und IBAN des Ausstellers stehen sehr oft in der FUSSZEILE des Dokuments — dort nachsehen, nicht nur im Briefkopf.
             - partner_uid: UID-Nummer des Rechnungsstellers (z. B. ATU12345678), falls angegeben.
             - partner_iban: IBAN des Rechnungsstellers, falls angegeben, ohne Leerzeichen.
             RULE,
             ScanDocumentKind::OutgoingInvoice => <<<'RULE'
             Das Dokument ist eine AUSGANGSRECHNUNG unseres eigenen Bauunternehmens an einen Kunden.
-            - partner_name: der RECHNUNGSEMPFÄNGER (Kunde), nie der Absender. Name wie gedruckt, ohne Adresszusätze.
+            - partner_name: der RECHNUNGSEMPFÄNGER (Kunde), nie der Absender. Der Empfänger steht im ANSCHRIFTENFELD (Brieffenster oben, wo bei einem Brief die Adresse steht): Name, darunter Straße, darunter PLZ und Ort. Auch Privatpersonen sind gültige Empfänger. Name wie gedruckt, ohne Adresszusätze.
             - partner_uid: UID-Nummer des Empfängers, falls angegeben (die UID des Absenders ignorieren).
             - partner_iban: immer null (die IBAN auf dem Beleg gehört dem Absender).
             RULE,
             ScanDocumentKind::Offer => <<<'RULE'
             Das Dokument ist ein ANGEBOT unseres eigenen Bauunternehmens an einen Kunden.
-            - partner_name: der ANGEBOTSEMPFÄNGER (Kunde), nie der Absender.
+            - partner_name: der ANGEBOTSEMPFÄNGER (Kunde), nie der Absender. Der Empfänger steht im ANSCHRIFTENFELD (Brieffenster oben, wo bei einem Brief die Adresse steht); auch Privatpersonen sind gültige Empfänger.
             - partner_uid: UID-Nummer des Empfängers, falls angegeben (die UID des Absenders ignorieren).
             - partner_iban: immer null.
             - doc_number: die Angebotsnummer.

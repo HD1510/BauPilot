@@ -224,29 +224,91 @@ class TextInvoiceParser
         return preg_match('/Übergang\s+der\s+Steuerschuld|Reverse[-\s]?Charge|§\s?19\s?(?:Abs|UStG)/iu', $text) === 1;
     }
 
+    private const LEGAL_FORM_PATTERN = '/^(.{2,60}?(?:GmbH\s?&\s?Co\.?\s?KG|Ges\.?m\.?b\.?H\.?|GmbH|e\.\s?U\.|AG|KG|OG))(?=\s|$|[,;:])/u';
+
     /**
-     * Kein bekannter Partner im Text: die ersten Zeilen nach einer Firma
-     * mit Rechtsform absuchen — nur ein Vorschlag, kein Fakt. Das gilt
-     * nur für Eingangsrechnungen (der Briefkopf gehört dem Aussteller);
-     * auf eigenen Belegen steht oben die EIGENE Firma — dort wäre jede
-     * Raterei falsch, der Empfänger wird von Hand gewählt.
+     * Kein bekannter Partner im Text — dann dort suchen, wo er auf
+     * echten Belegen steht (nur ein Vorschlag, kein Fakt):
+     *
+     *  - Eingangsrechnung: Aussteller im Briefkopf ODER in der Fußzeile
+     *    (dort stehen meist Firmenname, UID, IBAN — oft mit | · getrennt)
+     *  - Eigene Belege (Ausgangsrechnung/Angebot): Empfänger im
+     *    Anschriftenfeld (Brieffenster: Name über Straße über PLZ Ort) —
+     *    das findet auch Privatkunden ohne Rechtsform
      */
     private static function partnerNameHeuristic(string $text, ScanDocumentKind $kind, ?string $ownCompanyName): ?string
     {
-        if (! $kind->partnerIsSeller()) {
-            return null;
-        }
-
         $lines = array_values(array_filter(array_map('trim', explode("\n", $text)), fn (string $line): bool => $line !== ''));
         $ownNormalized = $ownCompanyName !== null ? NameNormalizer::normalize($ownCompanyName) : null;
+        $isOwn = fn (string $value): bool => $ownNormalized !== null && $ownNormalized !== ''
+            && str_contains(NameNormalizer::normalize($value), $ownNormalized);
 
-        foreach (array_slice($lines, 0, 15) as $line) {
-            if ($ownNormalized !== null && $ownNormalized !== '' && str_contains(NameNormalizer::normalize($line), $ownNormalized)) {
+        if (! $kind->partnerIsSeller()) {
+            return self::addressWindowName($lines, $isOwn);
+        }
+
+        // Briefkopf zuerst, dann die Fußzeile.
+        $regions = [array_slice($lines, 0, 15)];
+
+        if (count($lines) > 15) {
+            $regions[] = array_slice($lines, -15);
+        }
+
+        foreach ($regions as $region) {
+            foreach ($region as $line) {
+                if ($isOwn($line)) {
+                    continue;
+                }
+
+                // Fußzeilen trennen Angaben mit | · • oder breiten Lücken;
+                // Beschriftungen wie „Firma:" fallen vor dem Muster weg.
+                foreach (preg_split('/\s*[|·•]\s*|\s{3,}/u', $line) ?: [] as $segment) {
+                    $segment = trim((string) preg_replace('/^[^:]{0,30}:\s*/u', '', trim($segment)));
+
+                    if ($segment !== '' && strlen($segment) <= 80 && preg_match(self::LEGAL_FORM_PATTERN, $segment, $m) === 1) {
+                        return trim($m[1]);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Empfänger aus dem Anschriftenfeld (DIN-Brieffenster): über der
+     * PLZ-Ort-Zeile steht die Straße, darüber der Name. So findet die
+     * Heuristik auch Privatkunden — eine Rechtsform braucht es nicht.
+     *
+     * @param  array<int, string>  $lines
+     * @param  callable(string): bool  $isOwn
+     */
+    private static function addressWindowName(array $lines, callable $isOwn): ?string
+    {
+        foreach (array_slice($lines, 0, 20) as $i => $line) {
+            // PLZ-Ort-Zeile (AT 4-stellig, DE 5-stellig).
+            if (preg_match('/^(?:A-|D-)?\d{4,5}\s+\p{Lu}/u', $line) !== 1) {
                 continue;
             }
 
-            if (strlen($line) <= 80 && preg_match('/^(.{2,60}?(?:GmbH\s?&\s?Co\.?\s?KG|Ges\.?m\.?b\.?H\.?|GmbH|e\.\s?U\.|AG|KG|OG))(?=\s|$|[,;:])/u', $line, $m) === 1) {
-                return trim($m[1]);
+            // Üblich: Name/Straße/PLZ (Versatz 2); mit z.H.-Zeile Versatz 3;
+            // knapp: Name/PLZ (Versatz 1).
+            foreach ([2, 3, 1] as $offset) {
+                $index = $i - $offset;
+
+                if ($index < 0) {
+                    continue;
+                }
+
+                $candidate = trim((string) preg_replace('/^(?:An:?|z\.\s?H\.:?|Firma)\s+/iu', '', $lines[$index]));
+
+                // Straßen und Absender-Einzeiler scheiden aus: Ziffern
+                // gehören in keine Namenszeile.
+                if ($candidate === '' || strlen($candidate) > 80 || preg_match('/\d/', $candidate) === 1 || $isOwn($candidate)) {
+                    continue;
+                }
+
+                return $candidate;
             }
         }
 
