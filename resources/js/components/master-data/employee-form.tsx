@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,6 +29,7 @@ export type EmployeeFormValues = {
 };
 
 export type UserOption = { id: number; name: string; login: string };
+export type RoleOption = { value: string; label: string };
 
 export function EmployeeForm({
     action,
@@ -36,6 +38,7 @@ export function EmployeeForm({
     users,
     submitLabel,
     disabled = false,
+    accountRoles = null,
 }: {
     action: string;
     method: 'post' | 'patch';
@@ -43,6 +46,8 @@ export function EmployeeForm({
     users: UserOption[];
     submitLabel: string;
     disabled?: boolean;
+    /** Rollenliste aktiviert „Benutzerkonto anlegen" beim Erstellen (nur Admin). */
+    accountRoles?: RoleOption[] | null;
 }) {
     const { data, setData, post, patch, processing, errors, transform } =
         useForm({
@@ -58,6 +63,11 @@ export function EmployeeForm({
             user_id: employee?.user_id ? String(employee.user_id) : 'none',
             notes: employee?.notes ?? '',
             lock_version: employee?.lock_version ?? 0,
+            create_account: false,
+            username: '',
+            email: '',
+            password: '',
+            role: 'site',
         });
 
     return (
@@ -65,13 +75,28 @@ export function EmployeeForm({
             className="max-w-xl space-y-6"
             onSubmit={(event) => {
                 event.preventDefault();
-                transform((values) => ({
-                    ...values,
-                    user_id:
-                        values.user_id === 'none'
-                            ? null
-                            : Number(values.user_id),
-                }));
+                transform((values) => {
+                    const withAccount =
+                        accountRoles !== null && values.create_account;
+
+                    return {
+                        ...values,
+                        user_id:
+                            values.user_id === 'none'
+                                ? null
+                                : Number(values.user_id),
+                        create_account: withAccount,
+                        // Ohne Konto-Anlage gehen keine Kontofelder mit.
+                        ...(withAccount
+                            ? { email: values.email || null }
+                            : {
+                                  username: null,
+                                  email: null,
+                                  password: null,
+                                  role: null,
+                              }),
+                    };
+                });
                 (method === 'post' ? post : patch)(action, {
                     preserveScroll: true,
                 });
@@ -207,10 +232,13 @@ export function EmployeeForm({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="user_id">Benutzerkonto (optional)</Label>
+                    <Label htmlFor="user_id">
+                        Bestehendes Benutzerkonto verknüpfen (optional)
+                    </Label>
                     <Select
                         value={data.user_id}
                         onValueChange={(value) => setData('user_id', value)}
+                        disabled={data.create_account}
                     >
                         <SelectTrigger id="user_id">
                             <SelectValue />
@@ -231,6 +259,106 @@ export function EmployeeForm({
                     </Select>
                     <InputError message={errors.user_id} />
                 </div>
+
+                {accountRoles && (
+                    <div className="grid gap-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                        <Label className="flex items-center gap-2 text-sm font-normal">
+                            <Checkbox
+                                checked={data.create_account}
+                                onCheckedChange={(checked) =>
+                                    setData('create_account', checked === true)
+                                }
+                            />
+                            Benutzerkonto anlegen — Zugangsdaten persönlich
+                            weitergeben
+                        </Label>
+                        {data.create_account && (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="account-username">
+                                            Benutzername
+                                        </Label>
+                                        <Input
+                                            id="account-username"
+                                            value={data.username}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'username',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="z. B. m.huber"
+                                            required
+                                        />
+                                        <InputError message={errors.username} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="account-email">
+                                            E-Mail-Adresse (optional)
+                                        </Label>
+                                        <Input
+                                            id="account-email"
+                                            type="email"
+                                            value={data.email}
+                                            onChange={(e) =>
+                                                setData('email', e.target.value)
+                                            }
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="account-password">
+                                            Startpasswort (mind. 8 Zeichen)
+                                        </Label>
+                                        <Input
+                                            id="account-password"
+                                            type="text"
+                                            autoComplete="off"
+                                            value={data.password}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'password',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                        <InputError message={errors.password} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="account-role">
+                                            Rolle
+                                        </Label>
+                                        <Select
+                                            value={data.role}
+                                            onValueChange={(role) =>
+                                                setData('role', role)
+                                            }
+                                        >
+                                            <SelectTrigger id="account-role">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {accountRoles.map((role) => (
+                                                    <SelectItem
+                                                        key={role.value}
+                                                        value={role.value}
+                                                    >
+                                                        {role.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.role} />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div className="grid gap-2">
                     <Label htmlFor="notes">Notizen</Label>

@@ -5,13 +5,11 @@ namespace App\Http\Controllers\MasterData;
 use App\Enums\CompanyRole;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
-use App\Models\User;
+use App\Support\Employees\EmployeeAccountCreator;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
@@ -22,7 +20,7 @@ use Illuminate\Validation\ValidationException;
  */
 class EmployeeAccountController extends Controller
 {
-    public function store(Request $request, Employee $employee): RedirectResponse
+    public function store(Request $request, Employee $employee, EmployeeAccountCreator $accounts): RedirectResponse
     {
         $company = app(CompanyContext::class)->requireCompany();
 
@@ -34,36 +32,24 @@ class EmployeeAccountController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
-            'username' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-z0-9._-]+$/i'],
-            'password' => ['required', 'string', PasswordRule::min(8)],
-            'role' => ['required', Rule::enum(CompanyRole::class)],
-        ], [
-            'username.regex' => 'Der Benutzername darf nur Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich enthalten.',
-        ], ['username' => 'Benutzername', 'password' => 'Passwort', 'role' => 'Rolle']);
+        $validated = $request->validate(
+            EmployeeAccountCreator::rules(),
+            EmployeeAccountCreator::messages(),
+            EmployeeAccountCreator::attributes(),
+        );
 
-        $username = Str::lower($validated['username']);
+        $accounts->ensureUsernameFree($validated['username']);
 
-        if (User::query()->where('username', $username)->exists()) {
-            throw ValidationException::withMessages([
-                'username' => 'Dieser Benutzername ist bereits vergeben.',
-            ]);
-        }
+        $user = $accounts->create(
+            $employee,
+            $company,
+            $validated['username'],
+            $validated['email'] ?? null,
+            $validated['password'],
+            CompanyRole::from($validated['role']),
+        );
 
-        $user = User::create([
-            'name' => $employee->name,
-            'username' => $username,
-            'email' => null,
-            'password' => $validated['password'],
-        ]);
-
-        // Vom Admin angelegt — gilt sofort als bestätigt.
-        $user->forceFill(['email_verified_at' => now()])->save();
-
-        $company->users()->attach($user->id, ['role' => $validated['role']]);
-        $employee->update(['user_id' => $user->id]);
-
-        return back()->with('success', "Konto „{$username}“ wurde angelegt — Zugangsdaten bitte persönlich weitergeben.");
+        return back()->with('success', "Konto „{$user->username}“ wurde angelegt — Zugangsdaten bitte persönlich weitergeben.");
     }
 
     /**

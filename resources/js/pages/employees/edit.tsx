@@ -255,6 +255,7 @@ function CreateAccountForm({
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         username: '',
+        email: '',
         password: '',
         role: 'site',
     });
@@ -266,7 +267,7 @@ function CreateAccountForm({
                 event.preventDefault();
                 post(`/employees/${employeeId}/account`, {
                     preserveScroll: true,
-                    onSuccess: () => reset('username', 'password'),
+                    onSuccess: () => reset('username', 'email', 'password'),
                 });
             }}
         >
@@ -284,6 +285,22 @@ function CreateAccountForm({
                     />
                     <InputError message={errors.username} />
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="account-email">
+                        E-Mail-Adresse (optional)
+                    </Label>
+                    <Input
+                        id="account-email"
+                        type="email"
+                        value={data.email}
+                        onChange={(event) =>
+                            setData('email', event.target.value)
+                        }
+                    />
+                    <InputError message={errors.email} />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                     <Label htmlFor="account-password">
                         Startpasswort (mind. 8 Zeichen)

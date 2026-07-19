@@ -10,10 +10,12 @@ use App\Models\Employee;
 use App\Models\OvertimeEntry;
 use App\Models\OvertimePayout;
 use App\Models\User;
+use App\Support\Employees\EmployeeAccountCreator;
 use App\Support\Overtime\OvertimeBalance;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,17 +54,61 @@ class EmployeeController extends Controller
     {
         Gate::authorize('create', Employee::class);
 
+        $company = app(CompanyContext::class)->requireCompany();
+
         return Inertia::render('employees/create', [
             'users' => $this->userOptions(),
+            // Nur wer Mitglieder verwalten darf (Admin), kann gleich
+            // beim Anlegen ein Benutzerkonto miterstellen.
+            'accountRoles' => Gate::allows('manageMembers', $company)
+                ? collect(CompanyRole::cases())->map(fn (CompanyRole $role): array => [
+                    'value' => $role->value,
+                    'label' => $role->label(),
+                ])->values()->all()
+                : null,
         ]);
     }
 
-    public function store(EmployeeRequest $request): RedirectResponse
+    public function store(EmployeeRequest $request, EmployeeAccountCreator $accounts): RedirectResponse
     {
-        $employee = Employee::create($request->validated());
+        $account = null;
+
+        // Optional gleich ein Benutzerkonto mit anlegen (nur Admin).
+        if ($request->boolean('create_account')) {
+            $company = app(CompanyContext::class)->requireCompany();
+
+            Gate::authorize('manageMembers', $company);
+
+            $account = $request->validate(
+                EmployeeAccountCreator::rules(),
+                EmployeeAccountCreator::messages(),
+                EmployeeAccountCreator::attributes(),
+            );
+
+            $accounts->ensureUsernameFree($account['username']);
+        }
+
+        $employee = DB::transaction(function () use ($request, $accounts, $account): Employee {
+            $employee = Employee::create($request->validated());
+
+            if ($account !== null) {
+                $accounts->create(
+                    $employee,
+                    app(CompanyContext::class)->requireCompany(),
+                    $account['username'],
+                    $account['email'] ?? null,
+                    $account['password'],
+                    CompanyRole::from($account['role']),
+                );
+            }
+
+            return $employee;
+        });
 
         return redirect()->route('employees.edit', $employee)
-            ->with('success', "Mitarbeiter „{$employee->name}“ wurde angelegt.");
+            ->with('success', $account !== null
+                ? "Mitarbeiter „{$employee->name}“ und Konto angelegt — Zugangsdaten bitte persönlich weitergeben."
+                : "Mitarbeiter „{$employee->name}“ wurde angelegt.");
     }
 
     public function edit(Employee $employee): Response

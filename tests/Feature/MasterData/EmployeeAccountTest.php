@@ -39,6 +39,69 @@ test('admin legt ein konto mit benutzername am mitarbeiter an', function () {
         ->assertRedirect('/dashboard');
 });
 
+test('mitarbeiter und konto entstehen in einem schritt', function () {
+    actingMember(CompanyRole::Admin);
+
+    $this->post('/employees', [
+        'name' => 'Susi Büro',
+        'create_account' => true,
+        'username' => 'susi.buero',
+        'email' => 'susi@example.at',
+        'password' => 'baustelle123',
+        'role' => 'office',
+    ])->assertSessionHasNoErrors();
+
+    $employee = Employee::where('name', 'Susi Büro')->firstOrFail();
+    $user = User::where('username', 'susi.buero')->firstOrFail();
+
+    expect($employee->user_id)->toBe($user->id)
+        ->and($user->email)->toBe('susi@example.at');
+
+    // Ohne E-Mail geht es genauso — sie ist optional.
+    $this->post('/employees', [
+        'name' => 'Max Polier',
+        'create_account' => true,
+        'username' => 'max.polier',
+        'password' => 'baustelle123',
+        'role' => 'site',
+    ])->assertSessionHasNoErrors();
+
+    expect(User::where('username', 'max.polier')->value('email'))->toBeNull();
+});
+
+test('vergebener benutzername verhindert auch die mitarbeiter-anlage', function () {
+    actingMember(CompanyRole::Admin);
+    User::factory()->create(['username' => 'max.polier']);
+
+    $this->post('/employees', [
+        'name' => 'Max Polier',
+        'create_account' => true,
+        'username' => 'max.polier',
+        'password' => 'baustelle123',
+        'role' => 'site',
+    ])->assertSessionHasErrors('username');
+
+    expect(Employee::where('name', 'Max Polier')->exists())->toBeFalse();
+});
+
+test('büro darf mitarbeiter anlegen, aber nicht mit konto', function () {
+    actingMember(CompanyRole::Office);
+
+    $this->post('/employees', [
+        'name' => 'Nur Mitarbeiter',
+    ])->assertSessionHasNoErrors();
+
+    $this->post('/employees', [
+        'name' => 'Mit Konto',
+        'create_account' => true,
+        'username' => 'mit.konto',
+        'password' => 'baustelle123',
+        'role' => 'site',
+    ])->assertForbidden();
+
+    expect(Employee::where('name', 'Mit Konto')->exists())->toBeFalse();
+});
+
 test('anmeldung mit e-mail-adresse funktioniert weiterhin', function () {
     [$user] = actingMember(CompanyRole::Admin);
 
