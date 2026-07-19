@@ -152,11 +152,15 @@ export function InvoiceScanCard({
 
             setResult(json);
 
+            // Erkanntes SOFORT ins Formular übernehmen — der Partner
+            // kann danach noch gewählt oder angelegt werden (füllt das
+            // Formular dann erneut, diesmal samt Partner).
+            onApply(json, null);
+
             if (json.matches.length === 0 && !json.partner_proposal.name) {
                 toast.info(
-                    `Kein ${partnerLabel} erkannt — bitte manuell wählen. Die Beträge wurden übernommen.`,
+                    `Kein ${partnerLabel} erkannt — bitte manuell wählen. Die übrigen Daten wurden übernommen.`,
                 );
-                onApply(json, null);
                 setChosen('none');
             }
         } catch {
@@ -416,13 +420,12 @@ export function InvoiceScanCard({
                         </Button>
                     </div>
 
-                    {chosen !== null && (
-                        <p className="text-xs text-muted-foreground">
-                            Das Formular unten wurde ausgefüllt — bitte prüfen
-                            und speichern. Die Datei wird beim Speichern als
-                            Beleg angehängt.
-                        </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                        {chosen === null &&
+                        (result.matches.length > 0 || proposal?.name)
+                            ? `Die erkannten Daten stehen bereits im Formular — bitte noch den ${partnerLabel} übernehmen oder neu anlegen, dann prüfen und speichern.`
+                            : 'Das Formular unten wurde ausgefüllt — bitte prüfen und speichern. Die Datei wird beim Speichern als Beleg angehängt.'}
+                    </p>
                 </div>
             )}
         </div>
