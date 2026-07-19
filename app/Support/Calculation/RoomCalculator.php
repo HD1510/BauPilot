@@ -33,7 +33,7 @@ class RoomCalculator
      *     wall_tile_area_raw: float, wall_tile_area: float,
      *     silicone: float,
      *     skirting_parquet: float, skirting_tiles: float, skirting: float,
-     *     painting_area: float,
+     *     painting_area: float, facade_mesh: float,
      *     cost: float
      * }
      */
@@ -94,6 +94,8 @@ class RoomCalculator
             'skirting_tiles' => $this->round($skirtingTiles),
             'skirting' => $this->round($skirtingParquet + $skirtingTiles),
             'painting_area' => $this->round($paintingArea),
+            // Fassadennetz: erfahrungsgemäß die halbe Malerfläche.
+            'facade_mesh' => $this->round($paintingArea / 2),
         ];
 
         $quantities['cost'] = $this->round(
@@ -117,12 +119,12 @@ class RoomCalculator
     public function totals(iterable $rooms, Calculation $calculation): array
     {
         $totals = [
-            'area' => 0.0, 'parquet_area' => 0.0,
+            'area' => 0.0, 'perimeter' => 0.0, 'parquet_area' => 0.0,
             'floor_tile_area_raw' => 0.0, 'floor_tile_area' => 0.0,
             'wall_tile_area_raw' => 0.0, 'wall_tile_area' => 0.0,
             'silicone' => 0.0,
             'skirting_parquet' => 0.0, 'skirting_tiles' => 0.0, 'skirting' => 0.0,
-            'painting_area' => 0.0, 'cost' => 0.0,
+            'painting_area' => 0.0, 'facade_mesh' => 0.0, 'cost' => 0.0,
         ];
 
         foreach ($rooms as $room) {

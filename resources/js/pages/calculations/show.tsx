@@ -35,6 +35,7 @@ type Quantities = {
     skirting_tiles: number;
     skirting: number;
     painting_area: number;
+    facade_mesh: number;
     cost: number;
 };
 
@@ -183,86 +184,134 @@ function TotalsCard({
     calculationId: number;
     totals: Quantities;
 }) {
-    const quantityItems = [
-        { label: 'Bodenfläche', value: totals.area, unit: 'm²' },
+    type Item = {
+        label: string;
+        value: number;
+        unit: string;
+        withWaste?: number;
+    };
+
+    // Übersicht nach Gewerken gegliedert — jede Gruppe zeigt nur, was
+    // in der Kalkulation auch vorkommt.
+    const groups = [
         {
-            label: 'Parkett (inkl. Verschnitt)',
-            value: totals.parquet_area,
-            unit: 'm²',
-        },
-        // Fliesen ohne und mit Verschnitt untereinander — verlegt wird
-        // ohne, bestellt mit.
-        {
-            label: 'Bodenfliesen',
-            value: totals.floor_tile_area_raw,
-            withWaste: totals.floor_tile_area,
-            unit: 'm²',
-        },
-        {
-            label: 'Wandfliesen',
-            value: totals.wall_tile_area_raw,
-            withWaste: totals.wall_tile_area,
-            unit: 'm²',
-        },
-        { label: 'Silikonfugen', value: totals.silicone, unit: 'lfm' },
-        // Sockelleisten getrennt — Parkett- und Fliesensockel sind
-        // unterschiedliche Produkte.
-        {
-            label: 'Sockelleisten Parkett',
-            value: totals.skirting_parquet,
-            unit: 'lfm',
+            title: 'Allgemein',
+            items: [
+                { label: 'Fläche', value: totals.area, unit: 'm²' },
+                { label: 'Laufmeter', value: totals.perimeter, unit: 'lfm' },
+            ] as Item[],
         },
         {
-            label: 'Sockelleisten Fliesen',
-            value: totals.skirting_tiles,
-            unit: 'lfm',
+            title: 'Bodenleger',
+            items: [
+                {
+                    label: 'Parkett (inkl. Verschnitt)',
+                    value: totals.parquet_area,
+                    unit: 'm²',
+                },
+                {
+                    label: 'Sockelleisten',
+                    value: totals.skirting_parquet,
+                    unit: 'lfm',
+                },
+            ] as Item[],
         },
-        { label: 'Malerfläche', value: totals.painting_area, unit: 'm²' },
-    ].filter((item) => item.value > 0);
+        {
+            title: 'Fliesen',
+            items: [
+                // Ohne und mit Verschnitt untereinander — verlegt wird
+                // ohne, bestellt mit.
+                {
+                    label: 'Bodenfliesen',
+                    value: totals.floor_tile_area_raw,
+                    withWaste: totals.floor_tile_area,
+                    unit: 'm²',
+                },
+                {
+                    label: 'Wandfliesen',
+                    value: totals.wall_tile_area_raw,
+                    withWaste: totals.wall_tile_area,
+                    unit: 'm²',
+                },
+                {
+                    label: 'Sockelleisten',
+                    value: totals.skirting_tiles,
+                    unit: 'lfm',
+                },
+                {
+                    label: 'Silikonfugen',
+                    value: totals.silicone,
+                    unit: 'lfm',
+                },
+            ] as Item[],
+        },
+        {
+            title: 'Maler',
+            items: [
+                {
+                    label: 'Malerfläche',
+                    value: totals.painting_area,
+                    unit: 'm²',
+                },
+                {
+                    label: 'Fassadennetz',
+                    value: totals.facade_mesh,
+                    unit: 'm²',
+                },
+            ] as Item[],
+        },
+    ]
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => item.value > 0),
+        }))
+        .filter((group) => group.items.length > 0);
 
     return (
-        <div className="grid max-w-4xl gap-3 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                {quantityItems.map((item) => (
-                    <div key={item.label}>
-                        <div className="text-xs text-muted-foreground">
-                            {item.label}
+        <div className="grid max-w-4xl gap-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+            <div className="grid gap-6 sm:grid-cols-4">
+                {groups.map((group) => (
+                    <div key={group.title} className="grid content-start gap-2">
+                        <div className="text-sm font-semibold">
+                            {group.title}
                         </div>
-                        {'withWaste' in item && item.withWaste !== undefined ? (
-                            <>
-                                <div className="font-medium">
-                                    {item.value.toLocaleString('de-AT')}{' '}
-                                    {item.unit}{' '}
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                        ohne Verschnitt
-                                    </span>
+                        {group.items.map((item) => (
+                            <div key={item.label}>
+                                <div className="text-xs text-muted-foreground">
+                                    {item.label}
                                 </div>
-                                <div className="font-medium">
-                                    {item.withWaste.toLocaleString('de-AT')}{' '}
-                                    {item.unit}{' '}
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                        mit Verschnitt
-                                    </span>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="font-medium">
-                                {item.value.toLocaleString('de-AT')} {item.unit}
+                                {item.withWaste !== undefined ? (
+                                    <>
+                                        <div className="font-medium">
+                                            {item.value.toLocaleString('de-AT')}{' '}
+                                            {item.unit}{' '}
+                                            <span className="text-xs font-normal text-muted-foreground">
+                                                ohne Verschnitt
+                                            </span>
+                                        </div>
+                                        <div className="font-medium">
+                                            {item.withWaste.toLocaleString(
+                                                'de-AT',
+                                            )}{' '}
+                                            {item.unit}{' '}
+                                            <span className="text-xs font-normal text-muted-foreground">
+                                                mit Verschnitt
+                                            </span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="font-medium">
+                                        {item.value.toLocaleString('de-AT')}{' '}
+                                        {item.unit}
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        ))}
                     </div>
                 ))}
-                <div className="ml-auto text-right">
-                    <div className="text-xs text-muted-foreground">
-                        Summe netto
-                    </div>
-                    <div className="text-2xl font-semibold">
-                        {formatEUR(totals.cost)}
-                    </div>
-                </div>
             </div>
-            {totals.cost > 0 && (
-                <div>
+            <div className="flex items-end justify-between gap-3 border-t border-sidebar-border/70 pt-3 dark:border-sidebar-border">
+                {totals.cost > 0 ? (
                     <Button asChild variant="outline" size="sm">
                         <Link
                             href={`/offers/create?calculation=${calculationId}`}
@@ -271,8 +320,18 @@ function TotalsCard({
                             Als Angebot übernehmen
                         </Link>
                     </Button>
+                ) : (
+                    <span />
+                )}
+                <div className="text-right">
+                    <div className="text-xs text-muted-foreground">
+                        Summe netto
+                    </div>
+                    <div className="text-2xl font-semibold">
+                        {formatEUR(totals.cost)}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
