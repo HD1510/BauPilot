@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Upload } from 'lucide-react';
+import { useRef } from 'react';
+import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +22,7 @@ type RunRow = {
 };
 
 export default function ImportsIndex({ runs }: { runs: RunRow[] }) {
+    const fileInput = useRef<HTMLInputElement>(null);
     const { data, setData, post, processing, errors, reset } = useForm<{
         file: File | null;
     }>({ file: null });
@@ -33,36 +36,52 @@ export default function ImportsIndex({ runs }: { runs: RunRow[] }) {
                     description="Zweiphasig: Dry-Run mit Prüfbericht, dann Übernahme — erneute Läufe derselben Datei legen nichts doppelt an"
                 />
 
-                <form
-                    className="flex max-w-xl items-end gap-3"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        post('/imports', {
-                            forceFormData: true,
-                            onSuccess: () => reset(),
-                        });
+                <FileDropZone
+                    disabled={processing}
+                    onFiles={(files) => {
+                        assignToInput(fileInput.current, files.slice(0, 1));
+                        setData('file', files[0]);
                     }}
+                    className="max-w-xl"
                 >
-                    <div className="grid flex-1 gap-2">
-                        <Label htmlFor="import-file">
-                            Übersicht (.xlsx) hochladen
-                        </Label>
-                        <Input
-                            id="import-file"
-                            type="file"
-                            accept=".xlsx,.xls"
-                            onChange={(event) =>
-                                setData('file', event.target.files?.[0] ?? null)
-                            }
-                            required
-                        />
-                        <InputError message={errors.file} />
-                    </div>
-                    <Button type="submit" disabled={processing || !data.file}>
-                        <Upload className="size-4" />
-                        Dry-Run starten
-                    </Button>
-                </form>
+                    <form
+                        className="flex items-end gap-3"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            post('/imports', {
+                                forceFormData: true,
+                                onSuccess: () => reset(),
+                            });
+                        }}
+                    >
+                        <div className="grid flex-1 gap-2">
+                            <Label htmlFor="import-file">
+                                Übersicht (.xlsx) hochladen
+                            </Label>
+                            <Input
+                                id="import-file"
+                                ref={fileInput}
+                                type="file"
+                                accept=".xlsx,.xls"
+                                onChange={(event) =>
+                                    setData(
+                                        'file',
+                                        event.target.files?.[0] ?? null,
+                                    )
+                                }
+                                required
+                            />
+                            <InputError message={errors.file} />
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={processing || !data.file}
+                        >
+                            <Upload className="size-4" />
+                            Dry-Run starten
+                        </Button>
+                    </form>
+                </FileDropZone>
 
                 <div className="grid max-w-3xl gap-2">
                     {runs.map((run) => (

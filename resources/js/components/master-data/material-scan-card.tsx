@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { ScanSearch, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -160,7 +161,14 @@ export function MaterialScanCard({
     };
 
     return (
-        <div className="grid gap-3 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+        <FileDropZone
+            disabled={busy}
+            onFiles={(files) => {
+                assignToInput(fileInput.current, files.slice(0, 1));
+                void scan();
+            }}
+            className="grid gap-3 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
             <div className="flex items-start gap-3">
                 <ScanSearch className="mt-1 size-5 shrink-0 text-muted-foreground" />
                 <Heading
@@ -351,6 +359,6 @@ export function MaterialScanCard({
                     </div>
                 </div>
             )}
-        </div>
+        </FileDropZone>
     );
 }

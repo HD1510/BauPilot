@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Camera, FileText, FolderDown, Trash2, Upload } from 'lucide-react';
 import { useRef } from 'react';
 import { toast } from 'sonner';
+import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -220,6 +221,7 @@ function UploadForm({
     categories: CategoryOption[];
 }) {
     const cameraInput = useRef<HTMLInputElement>(null);
+    const fileInput = useRef<HTMLInputElement>(null);
     const { data, setData, post, processing, errors, reset } = useForm<{
         documentable_type: string;
         documentable_id: number;
@@ -252,89 +254,98 @@ function UploadForm({
     };
 
     return (
-        <form
-            className="grid gap-3"
-            onSubmit={(event) => {
-                event.preventDefault();
-                post('/documents', {
-                    preserveScroll: true,
-                    forceFormData: true,
-                    onSuccess: () => reset('file'),
-                });
+        <FileDropZone
+            disabled={processing}
+            onFiles={(files) => {
+                assignToInput(fileInput.current, files.slice(0, 1));
+                setData('file', files[0]);
             }}
         >
-            <div className="flex items-end gap-3">
-                <div className="grid flex-1 gap-2">
-                    <Label
-                        htmlFor={`file-${documentableType}-${documentableId}`}
-                    >
-                        Datei hochladen (max. 25 MB)
-                    </Label>
-                    <Input
-                        id={`file-${documentableType}-${documentableId}`}
-                        type="file"
-                        onChange={(event) =>
-                            setData('file', event.target.files?.[0] ?? null)
-                        }
-                        required
-                    />
-                    <InputError message={errors.file ?? errors.category} />
-                </div>
-                <Select
-                    value={data.category}
-                    onValueChange={(value) => setData('category', value)}
-                >
-                    <SelectTrigger className="w-40" aria-label="Kategorie">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {categories.map((category) => (
-                            <SelectItem
-                                key={category.value}
-                                value={category.value}
-                            >
-                                {category.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button type="submit" disabled={processing || !data.file}>
-                    <Upload className="size-4" />
-                    Hochladen
-                </Button>
-            </div>
-            {withCamera && (
-                <>
-                    <input
-                        ref={cameraInput}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        aria-hidden
-                        tabIndex={-1}
-                        onChange={(event) => {
-                            const file = event.target.files?.[0];
-
-                            if (file) {
-                                submitCameraShot(file);
+            <form
+                className="grid gap-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    post('/documents', {
+                        preserveScroll: true,
+                        forceFormData: true,
+                        onSuccess: () => reset('file'),
+                    });
+                }}
+            >
+                <div className="flex items-end gap-3">
+                    <div className="grid flex-1 gap-2">
+                        <Label
+                            htmlFor={`file-${documentableType}-${documentableId}`}
+                        >
+                            Datei hochladen (max. 25 MB)
+                        </Label>
+                        <Input
+                            id={`file-${documentableType}-${documentableId}`}
+                            ref={fileInput}
+                            type="file"
+                            onChange={(event) =>
+                                setData('file', event.target.files?.[0] ?? null)
                             }
-
-                            event.target.value = '';
-                        }}
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-fit"
-                        disabled={processing}
-                        onClick={() => cameraInput.current?.click()}
+                            required
+                        />
+                        <InputError message={errors.file ?? errors.category} />
+                    </div>
+                    <Select
+                        value={data.category}
+                        onValueChange={(value) => setData('category', value)}
                     >
-                        <Camera className="size-4" />
-                        Foto aufnehmen
+                        <SelectTrigger className="w-40" aria-label="Kategorie">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {categories.map((category) => (
+                                <SelectItem
+                                    key={category.value}
+                                    value={category.value}
+                                >
+                                    {category.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button type="submit" disabled={processing || !data.file}>
+                        <Upload className="size-4" />
+                        Hochladen
                     </Button>
-                </>
-            )}
-        </form>
+                </div>
+                {withCamera && (
+                    <>
+                        <input
+                            ref={cameraInput}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            aria-hidden
+                            tabIndex={-1}
+                            onChange={(event) => {
+                                const file = event.target.files?.[0];
+
+                                if (file) {
+                                    submitCameraShot(file);
+                                }
+
+                                event.target.value = '';
+                            }}
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-fit"
+                            disabled={processing}
+                            onClick={() => cameraInput.current?.click()}
+                        >
+                            <Camera className="size-4" />
+                            Foto aufnehmen
+                        </Button>
+                    </>
+                )}
+            </form>
+        </FileDropZone>
     );
 }

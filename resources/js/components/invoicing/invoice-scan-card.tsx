@@ -1,6 +1,7 @@
 import { FileUp, FolderDown, ScanText, UserPlus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { FileDropZone } from '@/components/file-drop-zone';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -263,7 +264,11 @@ export function InvoiceScanCard({
         : [];
 
     return (
-        <div className="max-w-xl rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+        <FileDropZone
+            disabled={scanning}
+            onFiles={(files) => void scan(files[0])}
+            className="max-w-xl rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+        >
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <ScanText className="size-5 text-muted-foreground" />
@@ -428,6 +433,6 @@ export function InvoiceScanCard({
                     </p>
                 </div>
             )}
-        </div>
+        </FileDropZone>
     );
 }

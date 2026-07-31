@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -863,7 +864,14 @@ function PlanImportCard({
     };
 
     return (
-        <div className="grid max-w-4xl gap-3">
+        <FileDropZone
+            disabled={busy}
+            onFiles={(files) => {
+                assignToInput(fileInput.current, files.slice(0, 1));
+                void scan();
+            }}
+            className="grid max-w-4xl gap-3"
+        >
             <Heading
                 variant="small"
                 title="Einreichplan (PDF) einlesen"
@@ -1028,7 +1036,7 @@ function PlanImportCard({
                     </Button>
                 </div>
             )}
-        </div>
+        </FileDropZone>
     );
 }
 
@@ -1039,64 +1047,72 @@ function CsvImport({ calculationId }: { calculationId: number }) {
     });
 
     return (
-        <form
-            className="grid max-w-4xl gap-3"
-            onSubmit={(event) => {
-                event.preventDefault();
-                post(`/calculations/${calculationId}/import`, {
-                    preserveScroll: true,
-                    onSuccess: () => reset('csv'),
-                });
-            }}
+        <FileDropZone
+            onFiles={(files) =>
+                void files[0].text().then((text) => setData('csv', text))
+            }
         >
-            <Heading
-                variant="small"
-                title="Räume aus CSV/TXT importieren"
-                description="Spalten wie Name, Länge, Breite, Höhe, Material (Parkett/Bodenfliesen/Wandfliesen), Kanten, Tür — Trenner , ; oder Tab"
-            />
-            <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,.txt"
-                className="hidden"
-                aria-hidden
-                tabIndex={-1}
-                onChange={(event) => {
-                    const file = event.target.files?.[0];
-
-                    if (file) {
-                        void file.text().then((text) => setData('csv', text));
-                    }
-
-                    event.target.value = '';
+            <form
+                className="grid max-w-4xl gap-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    post(`/calculations/${calculationId}/import`, {
+                        preserveScroll: true,
+                        onSuccess: () => reset('csv'),
+                    });
                 }}
-            />
-            <Textarea
-                value={data.csv}
-                onChange={(event) => setData('csv', event.target.value)}
-                placeholder={
-                    'Name;Länge;Breite;Höhe;Material\nWohnzimmer;5,2;4,1;2,5;Parkett\nBad;2,4;2,0;2,5;Wandfliesen'
-                }
-                rows={4}
-            />
-            <InputError message={errors.csv} />
-            <div className="flex gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInput.current?.click()}
-                >
-                    Datei wählen
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={processing || data.csv.trim() === ''}
-                >
-                    <Upload className="size-4" />
-                    Importieren
-                </Button>
-            </div>
-        </form>
+            >
+                <Heading
+                    variant="small"
+                    title="Räume aus CSV/TXT importieren"
+                    description="Spalten wie Name, Länge, Breite, Höhe, Material (Parkett/Bodenfliesen/Wandfliesen), Kanten, Tür — Trenner , ; oder Tab"
+                />
+                <input
+                    ref={fileInput}
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    aria-hidden
+                    tabIndex={-1}
+                    onChange={(event) => {
+                        const file = event.target.files?.[0];
+
+                        if (file) {
+                            void file
+                                .text()
+                                .then((text) => setData('csv', text));
+                        }
+
+                        event.target.value = '';
+                    }}
+                />
+                <Textarea
+                    value={data.csv}
+                    onChange={(event) => setData('csv', event.target.value)}
+                    placeholder={
+                        'Name;Länge;Breite;Höhe;Material\nWohnzimmer;5,2;4,1;2,5;Parkett\nBad;2,4;2,0;2,5;Wandfliesen'
+                    }
+                    rows={4}
+                />
+                <InputError message={errors.csv} />
+                <div className="flex gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInput.current?.click()}
+                    >
+                        Datei wählen
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={processing || data.csv.trim() === ''}
+                    >
+                        <Upload className="size-4" />
+                        Importieren
+                    </Button>
+                </div>
+            </form>
+        </FileDropZone>
     );
 }
 
