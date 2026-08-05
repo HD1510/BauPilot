@@ -114,6 +114,19 @@ class MaterialController extends Controller
     }
 
     /**
+     * Endgültig löschen — Artikel hängen an nichts weiter.
+     */
+    public function destroy(Material $material): RedirectResponse
+    {
+        Gate::authorize('delete', $material);
+
+        $material->delete();
+
+        return redirect()->route('materials.index')
+            ->with('success', "Artikel „{$material->name}“ wurde gelöscht.");
+    }
+
+    /**
      * @return array<int, array{id: int, name: string}>
      */
     private function supplierOptions(): array

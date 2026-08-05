@@ -1,12 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { Archive, ArchiveRestore } from 'lucide-react';
+import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
-import {
-    MaterialForm
-    
-    
+import { MaterialForm } from '@/components/master-data/material-form';
+import type {
+    MaterialFormValues,
+    SupplierOption,
 } from '@/components/master-data/material-form';
-import type {MaterialFormValues, SupplierOption} from '@/components/master-data/material-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -16,7 +15,11 @@ type Props = {
     canWrite: boolean;
 };
 
-export default function MaterialsEdit({ material, suppliers, canWrite }: Props) {
+export default function MaterialsEdit({
+    material,
+    suppliers,
+    canWrite,
+}: Props) {
     return (
         <>
             <Head title={`Artikel: ${material.name}`} />
@@ -27,26 +30,45 @@ export default function MaterialsEdit({ material, suppliers, canWrite }: Props) 
                         description="Artikel-Stammblatt"
                     />
                     {canWrite && (
-                        <Button
-                            variant="outline"
-                            onClick={() =>
-                                router.patch(
-                                    `/materials/${material.id}/archive`,
-                                )
-                            }
-                        >
-                            {material.active ? (
-                                <>
-                                    <Archive className="size-4" />
-                                    Archivieren
-                                </>
-                            ) : (
-                                <>
-                                    <ArchiveRestore className="size-4" />
-                                    Wieder aktivieren
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.patch(
+                                        `/materials/${material.id}/archive`,
+                                    )
+                                }
+                            >
+                                {material.active ? (
+                                    <>
+                                        <Archive className="size-4" />
+                                        Archivieren
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArchiveRestore className="size-4" />
+                                        Wieder aktivieren
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            `Artikel „${material.name}“ wirklich endgültig löschen?`,
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/materials/${material.id}`,
+                                        );
+                                    }
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Löschen
+                            </Button>
+                        </div>
                     )}
                 </div>
 

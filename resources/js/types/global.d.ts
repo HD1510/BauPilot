@@ -16,6 +16,7 @@ declare module '@inertiajs/core' {
             tenancy: Tenancy;
             flash: {
                 success?: string | null;
+                error?: string | null;
                 duplicates?:
                     | { id: number; name: string; similarity: number }[]
                     | null;

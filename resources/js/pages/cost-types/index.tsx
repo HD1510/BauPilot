@@ -1,13 +1,17 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Archive, ArchiveRestore, Check, Pencil, X } from 'lucide-react';
+import {
+    Archive,
+    ArchiveRestore,
+    Check,
+    Pencil,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import {
-    EmptyState
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -107,9 +111,7 @@ function CostTypeRow({
                         onChange={(e) => setData('name', e.target.value)}
                         required
                     />
-                    <InputError
-                        message={errors.name ?? errors.lock_version}
-                    />
+                    <InputError message={errors.name ?? errors.lock_version} />
                 </div>
                 <div className="grid w-28 gap-2">
                     <Label htmlFor={`sort-${costType.id}`}>Reihenfolge</Label>
@@ -123,7 +125,12 @@ function CostTypeRow({
                         }
                     />
                 </div>
-                <Button type="submit" size="icon" disabled={processing} aria-label="Speichern">
+                <Button
+                    type="submit"
+                    size="icon"
+                    disabled={processing}
+                    aria-label="Speichern"
+                >
                     <Check className="size-4" />
                 </Button>
                 <Button
@@ -183,6 +190,24 @@ function CostTypeRow({
                         ) : (
                             <Archive className="size-4" />
                         )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`${costType.name} löschen`}
+                        onClick={() => {
+                            if (
+                                confirm(
+                                    `Kostenart „${costType.name}“ wirklich endgültig löschen?`,
+                                )
+                            ) {
+                                router.delete(`/cost-types/${costType.id}`, {
+                                    preserveScroll: true,
+                                });
+                            }
+                        }}
+                    >
+                        <Trash2 className="size-4" />
                     </Button>
                 </>
             )}

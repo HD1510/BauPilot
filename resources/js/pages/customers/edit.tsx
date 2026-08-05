@@ -2,11 +2,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import {
-    CustomerForm
-    
-} from '@/components/master-data/customer-form';
-import type {CustomerFormValues} from '@/components/master-data/customer-form';
+import { CustomerForm } from '@/components/master-data/customer-form';
+import type { CustomerFormValues } from '@/components/master-data/customer-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,32 +33,52 @@ export default function CustomersEdit({ customer, contacts, canWrite }: Props) {
                         title={customer.name}
                         description="Kundenstammblatt mit Ansprechpartnern"
                     />
-                    {canWrite &&
-                        (customer.archived ? (
+                    {canWrite && (
+                        <div className="flex gap-2">
+                            {customer.archived ? (
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        router.patch(
+                                            `/customers/${customer.id}/restore`,
+                                        )
+                                    }
+                                >
+                                    <ArchiveRestore className="size-4" />
+                                    Wieder aktivieren
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        router.patch(
+                                            `/customers/${customer.id}/archive`,
+                                        )
+                                    }
+                                >
+                                    <Archive className="size-4" />
+                                    Archivieren
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
-                                onClick={() =>
-                                    router.patch(
-                                        `/customers/${customer.id}/restore`,
-                                    )
-                                }
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            `Kunde „${customer.name}“ wirklich endgültig löschen?`,
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/customers/${customer.id}`,
+                                        );
+                                    }
+                                }}
                             >
-                                <ArchiveRestore className="size-4" />
-                                Wieder aktivieren
+                                <Trash2 className="size-4" />
+                                Löschen
                             </Button>
-                        ) : (
-                            <Button
-                                variant="outline"
-                                onClick={() =>
-                                    router.patch(
-                                        `/customers/${customer.id}/archive`,
-                                    )
-                                }
-                            >
-                                <Archive className="size-4" />
-                                Archivieren
-                            </Button>
-                        ))}
+                        </div>
+                    )}
                 </div>
 
                 {customer.archived && (
@@ -93,7 +110,9 @@ export default function CustomersEdit({ customer, contacts, canWrite }: Props) {
                             className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
                         >
                             <div className="flex-1">
-                                <div className="font-medium">{contact.name}</div>
+                                <div className="font-medium">
+                                    {contact.name}
+                                </div>
                                 <div className="text-sm text-muted-foreground">
                                     {[contact.phone, contact.email]
                                         .filter(Boolean)

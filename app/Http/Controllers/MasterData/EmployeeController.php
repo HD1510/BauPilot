@@ -9,6 +9,8 @@ use App\Models\Document;
 use App\Models\Employee;
 use App\Models\OvertimeEntry;
 use App\Models\OvertimePayout;
+use App\Models\SiteReportEntry;
+use App\Models\TimeEntry;
 use App\Models\User;
 use App\Support\Employees\EmployeeAccountCreator;
 use App\Support\Overtime\OvertimeBalance;
@@ -17,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -202,6 +205,36 @@ class EmployeeController extends Controller
         return back()->with('success', $employee->active
             ? "Mitarbeiter „{$employee->name}“ ist wieder aktiv."
             : "Mitarbeiter „{$employee->name}“ wurde archiviert.");
+    }
+
+    /**
+     * Endgültig löschen — nur ohne Zeiten und Regieberichte (Lohn- und
+     * Leistungsnachweise bleiben nachvollziehbar; sonst archivieren).
+     * Personalakte (Dateien) und Überstunden gehen mit; ein verknüpftes
+     * Benutzerkonto bleibt bestehen.
+     */
+    public function destroy(Employee $employee): RedirectResponse
+    {
+        Gate::authorize('delete', $employee);
+
+        $inUse = TimeEntry::query()->where('employee_id', $employee->id)->exists()
+            || SiteReportEntry::query()->where('employee_id', $employee->id)->exists();
+
+        if ($inUse) {
+            return back()->with('error', "Mitarbeiter „{$employee->name}“ hat Zeiten oder Regieberichte und kann nicht gelöscht werden — bitte archivieren.");
+        }
+
+        DB::transaction(function () use ($employee): void {
+            foreach ($employee->documents as $document) {
+                Storage::disk('documents')->delete($document->path);
+                $document->delete();
+            }
+
+            $employee->delete();
+        });
+
+        return redirect()->route('employees.index')
+            ->with('success', "Mitarbeiter „{$employee->name}“ wurde gelöscht.");
     }
 
     /**

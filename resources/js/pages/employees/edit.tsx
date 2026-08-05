@@ -1,5 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Archive, ArchiveRestore, KeyRound, UserPlus } from 'lucide-react';
+import {
+    Archive,
+    ArchiveRestore,
+    KeyRound,
+    Trash2,
+    UserPlus,
+} from 'lucide-react';
 import { DocumentsSection } from '@/components/documents-section';
 import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
@@ -64,26 +70,45 @@ export default function EmployeesEdit({
                         description="Mitarbeiterstammblatt"
                     />
                     {canWrite && (
-                        <Button
-                            variant="outline"
-                            onClick={() =>
-                                router.patch(
-                                    `/employees/${employee.id}/archive`,
-                                )
-                            }
-                        >
-                            {employee.active ? (
-                                <>
-                                    <Archive className="size-4" />
-                                    Archivieren
-                                </>
-                            ) : (
-                                <>
-                                    <ArchiveRestore className="size-4" />
-                                    Wieder aktivieren
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.patch(
+                                        `/employees/${employee.id}/archive`,
+                                    )
+                                }
+                            >
+                                {employee.active ? (
+                                    <>
+                                        <Archive className="size-4" />
+                                        Archivieren
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArchiveRestore className="size-4" />
+                                        Wieder aktivieren
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            `Mitarbeiter „${employee.name}“ samt Personalakte wirklich endgültig löschen?`,
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/employees/${employee.id}`,
+                                        );
+                                    }
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Löschen
+                            </Button>
+                        </div>
                     )}
                 </div>
 

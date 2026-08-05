@@ -5,6 +5,9 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MasterData\CustomerRequest;
 use App\Models\Customer;
+use App\Models\Offer;
+use App\Models\OutgoingInvoice;
+use App\Models\Project;
 use App\Support\Duplicates\DuplicateFinder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -137,5 +140,29 @@ class CustomerController extends Controller
         $customer->restore();
 
         return back()->with('success', "Kunde „{$customer->name}“ ist wieder aktiv.");
+    }
+
+    /**
+     * Endgültig löschen — nur, wenn nichts am Kunden hängt; sonst ist
+     * Archivieren der richtige Weg (Belege bleiben nachvollziehbar).
+     */
+    public function destroy(int $customerId): RedirectResponse
+    {
+        $customer = Customer::withTrashed()->findOrFail($customerId);
+
+        Gate::authorize('delete', $customer);
+
+        $inUse = Offer::query()->where('customer_id', $customer->id)->exists()
+            || Project::query()->where('customer_id', $customer->id)->exists()
+            || OutgoingInvoice::query()->where('customer_id', $customer->id)->exists();
+
+        if ($inUse) {
+            return back()->with('error', "Kunde „{$customer->name}“ hat Angebote, Projekte oder Rechnungen und kann nicht gelöscht werden — bitte archivieren.");
+        }
+
+        $customer->forceDelete();
+
+        return redirect()->route('customers.index')
+            ->with('success', "Kunde „{$customer->name}“ wurde gelöscht.");
     }
 }

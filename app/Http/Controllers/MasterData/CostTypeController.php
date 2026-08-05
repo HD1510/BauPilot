@@ -5,6 +5,7 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MasterData\CostTypeRequest;
 use App\Models\CostType;
+use App\Models\IncomingInvoice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -70,5 +71,22 @@ class CostTypeController extends Controller
         return back()->with('success', $costType->active
             ? "Kostenart „{$costType->name}“ ist wieder aktiv."
             : "Kostenart „{$costType->name}“ wurde archiviert.");
+    }
+
+    /**
+     * Endgültig löschen — nur, wenn keine Rechnung die Kostenart nutzt;
+     * die Vorbelegung bei Lieferanten wird automatisch geleert.
+     */
+    public function destroy(CostType $costType): RedirectResponse
+    {
+        Gate::authorize('delete', $costType);
+
+        if (IncomingInvoice::query()->where('cost_type_id', $costType->id)->exists()) {
+            return back()->with('error', "Kostenart „{$costType->name}“ wird von Eingangsrechnungen verwendet und kann nicht gelöscht werden — bitte archivieren.");
+        }
+
+        $costType->delete();
+
+        return back()->with('success', "Kostenart „{$costType->name}“ wurde gelöscht.");
     }
 }

@@ -1,12 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { Archive, ArchiveRestore } from 'lucide-react';
+import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
-import {
-    SupplierForm
-    
-    
+import { SupplierForm } from '@/components/master-data/supplier-form';
+import type {
+    CostTypeOption,
+    SupplierFormValues,
 } from '@/components/master-data/supplier-form';
-import type {CostTypeOption, SupplierFormValues} from '@/components/master-data/supplier-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -16,7 +15,11 @@ type Props = {
     canWrite: boolean;
 };
 
-export default function SuppliersEdit({ supplier, costTypes, canWrite }: Props) {
+export default function SuppliersEdit({
+    supplier,
+    costTypes,
+    canWrite,
+}: Props) {
     return (
         <>
             <Head title={`Lieferant: ${supplier.name}`} />
@@ -27,26 +30,45 @@ export default function SuppliersEdit({ supplier, costTypes, canWrite }: Props) 
                         description="Lieferantenstammblatt"
                     />
                     {canWrite && (
-                        <Button
-                            variant="outline"
-                            onClick={() =>
-                                router.patch(
-                                    `/suppliers/${supplier.id}/archive`,
-                                )
-                            }
-                        >
-                            {supplier.active ? (
-                                <>
-                                    <Archive className="size-4" />
-                                    Archivieren
-                                </>
-                            ) : (
-                                <>
-                                    <ArchiveRestore className="size-4" />
-                                    Wieder aktivieren
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.patch(
+                                        `/suppliers/${supplier.id}/archive`,
+                                    )
+                                }
+                            >
+                                {supplier.active ? (
+                                    <>
+                                        <Archive className="size-4" />
+                                        Archivieren
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArchiveRestore className="size-4" />
+                                        Wieder aktivieren
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            `Lieferant „${supplier.name}“ wirklich endgültig löschen?`,
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/suppliers/${supplier.id}`,
+                                        );
+                                    }
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Löschen
+                            </Button>
+                        </div>
                     )}
                 </div>
 

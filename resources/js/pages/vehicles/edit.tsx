@@ -2,11 +2,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import {
-    VehicleForm
-    
-} from '@/components/master-data/vehicle-form';
-import type {VehicleFormValues} from '@/components/master-data/vehicle-form';
+import { VehicleForm } from '@/components/master-data/vehicle-form';
+import type { VehicleFormValues } from '@/components/master-data/vehicle-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,24 +29,45 @@ export default function VehiclesEdit({ vehicle, dates, canWrite }: Props) {
                         description="Fahrzeugstammblatt mit Terminen"
                     />
                     {canWrite && (
-                        <Button
-                            variant="outline"
-                            onClick={() =>
-                                router.patch(`/vehicles/${vehicle.id}/archive`)
-                            }
-                        >
-                            {vehicle.active ? (
-                                <>
-                                    <Archive className="size-4" />
-                                    Archivieren
-                                </>
-                            ) : (
-                                <>
-                                    <ArchiveRestore className="size-4" />
-                                    Wieder aktivieren
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.patch(
+                                        `/vehicles/${vehicle.id}/archive`,
+                                    )
+                                }
+                            >
+                                {vehicle.active ? (
+                                    <>
+                                        <Archive className="size-4" />
+                                        Archivieren
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArchiveRestore className="size-4" />
+                                        Wieder aktivieren
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            `Fahrzeug „${vehicle.plate}“ wirklich endgültig löschen?`,
+                                        )
+                                    ) {
+                                        router.delete(
+                                            `/vehicles/${vehicle.id}`,
+                                        );
+                                    }
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Löschen
+                            </Button>
+                        </div>
                     )}
                 </div>
 

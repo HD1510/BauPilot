@@ -19,6 +19,12 @@ export default function AppLayout({
         }
     }, [flash?.success]);
 
+    useEffect(() => {
+        if (flash?.error) {
+            toast.error(flash.error);
+        }
+    }, [flash?.error]);
+
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
             {children}

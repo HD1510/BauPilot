@@ -5,6 +5,9 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MasterData\SupplierRequest;
 use App\Models\CostType;
+use App\Models\ExternalOffer;
+use App\Models\IncomingInvoice;
+use App\Models\Material;
 use App\Models\Supplier;
 use App\Support\Duplicates\DuplicateFinder;
 use Illuminate\Http\RedirectResponse;
@@ -120,6 +123,28 @@ class SupplierController extends Controller
         return back()->with('success', $supplier->active
             ? "Lieferant „{$supplier->name}“ ist wieder aktiv."
             : "Lieferant „{$supplier->name}“ wurde archiviert.");
+    }
+
+    /**
+     * Endgültig löschen — nur ohne Rechnungen, Fremdangebote und
+     * Artikel; sonst ist Archivieren der richtige Weg.
+     */
+    public function destroy(Supplier $supplier): RedirectResponse
+    {
+        Gate::authorize('delete', $supplier);
+
+        $inUse = IncomingInvoice::query()->where('supplier_id', $supplier->id)->exists()
+            || ExternalOffer::query()->where('supplier_id', $supplier->id)->exists()
+            || Material::query()->where('supplier_id', $supplier->id)->exists();
+
+        if ($inUse) {
+            return back()->with('error', "Lieferant „{$supplier->name}“ hat Rechnungen, Fremdangebote oder Material-Artikel und kann nicht gelöscht werden — bitte archivieren.");
+        }
+
+        $supplier->delete();
+
+        return redirect()->route('suppliers.index')
+            ->with('success', "Lieferant „{$supplier->name}“ wurde gelöscht.");
     }
 
     /**

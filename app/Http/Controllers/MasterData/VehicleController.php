@@ -111,4 +111,17 @@ class VehicleController extends Controller
             ? "Fahrzeug „{$vehicle->plate}“ ist wieder aktiv."
             : "Fahrzeug „{$vehicle->plate}“ wurde archiviert.");
     }
+
+    /**
+     * Endgültig löschen — die Zusatztermine des Fahrzeugs gehen mit.
+     */
+    public function destroy(Vehicle $vehicle): RedirectResponse
+    {
+        Gate::authorize('delete', $vehicle);
+
+        $vehicle->delete();
+
+        return redirect()->route('vehicles.index')
+            ->with('success', "Fahrzeug „{$vehicle->plate}“ wurde gelöscht.");
+    }
 }

@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::patch('customers/{customer}/archive', [CustomerController::class, 'archive'])->name('customers.archive');
     Route::patch('customers/{customerId}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+    Route::delete('customers/{customerId}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('customers/{customer}/contacts', [CustomerContactController::class, 'store'])->name('customers.contacts.store');
     Route::delete('customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy'])->name('customers.contacts.destroy');
 
@@ -32,12 +33,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
     Route::patch('suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
     Route::patch('suppliers/{supplier}/archive', [SupplierController::class, 'archive'])->name('suppliers.archive');
+    Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
 
     // Kostenarten (Liste mit Inline-Formularen)
     Route::get('cost-types', [CostTypeController::class, 'index'])->name('cost-types.index');
     Route::post('cost-types', [CostTypeController::class, 'store'])->name('cost-types.store');
     Route::patch('cost-types/{cost_type}', [CostTypeController::class, 'update'])->name('cost-types.update');
     Route::patch('cost-types/{cost_type}/archive', [CostTypeController::class, 'archive'])->name('cost-types.archive');
+    Route::delete('cost-types/{cost_type}', [CostTypeController::class, 'destroy'])->name('cost-types.destroy');
 
     // Mitarbeiter
     Route::get('employees', [EmployeeController::class, 'index'])->name('employees.index');
@@ -46,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::patch('employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::patch('employees/{employee}/archive', [EmployeeController::class, 'archive'])->name('employees.archive');
+    Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::post('employees/{employee}/account', [EmployeeAccountController::class, 'store'])->name('employees.account.store');
     Route::patch('employees/{employee}/account/password', [EmployeeAccountController::class, 'updatePassword'])->name('employees.account.password');
 
@@ -62,6 +66,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])->name('vehicles.edit');
     Route::patch('vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
     Route::patch('vehicles/{vehicle}/archive', [VehicleController::class, 'archive'])->name('vehicles.archive');
+    Route::delete('vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
     Route::post('vehicles/{vehicle}/dates', [VehicleDateController::class, 'store'])->name('vehicles.dates.store');
     Route::delete('vehicles/{vehicle}/dates/{date}', [VehicleDateController::class, 'destroy'])->name('vehicles.dates.destroy');
 
@@ -74,4 +79,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('materials/{material}/edit', [MaterialController::class, 'edit'])->name('materials.edit');
     Route::patch('materials/{material}', [MaterialController::class, 'update'])->name('materials.update');
     Route::patch('materials/{material}/archive', [MaterialController::class, 'archive'])->name('materials.archive');
+    Route::delete('materials/{material}', [MaterialController::class, 'destroy'])->name('materials.destroy');
 });
