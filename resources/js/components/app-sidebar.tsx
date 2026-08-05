@@ -3,6 +3,7 @@ import {
     Building2,
     Calculator,
     CalendarClock,
+    CalendarRange,
     Clock,
     FileSpreadsheet,
     Car,
@@ -50,6 +51,11 @@ const mainNavItems: NavItem[] = [
         title: 'Aufgaben',
         href: '/tasks',
         icon: SquareCheckBig,
+    },
+    {
+        title: 'Einteilung',
+        href: '/assignments',
+        icon: CalendarRange,
     },
     {
         title: 'Zeiten',

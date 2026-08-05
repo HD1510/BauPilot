@@ -6,6 +6,7 @@ use App\Http\Controllers\Invoicing\InvoiceActionController;
 use App\Http\Controllers\Invoicing\InvoiceScanController;
 use App\Http\Controllers\Invoicing\OutgoingInvoiceController;
 use App\Http\Controllers\MasterData\PartnerQuickCreateController;
+use App\Http\Controllers\Planning\AssignmentController;
 use App\Http\Controllers\Projects\ProjectNoteController;
 use App\Http\Controllers\Projects\TaskController;
 use App\Http\Controllers\Sales\CalculationController;
@@ -19,6 +20,12 @@ use App\Http\Controllers\Times\TimeEntryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Einteilung: Baustellen je Tag mit Mitarbeitern und Fahrzeugen
+    Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::patch('assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
+    Route::delete('assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
+
     // Angebote mit Statuslauf und Übernahme ins Projekt
     Route::get('offers', [OfferController::class, 'index'])->name('offers.index');
     Route::get('offers/create', [OfferController::class, 'create'])->name('offers.create');
