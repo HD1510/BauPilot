@@ -158,6 +158,7 @@ class EmployeeController extends Controller
                 'calc_hourly_rate' => $employee->calc_hourly_rate,
                 'user_id' => $employee->user_id,
                 'active' => $employee->active,
+                'plannable' => $employee->plannable,
                 'notes' => $employee->notes,
                 'lock_version' => $employee->lock_version,
             ],

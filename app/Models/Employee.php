@@ -31,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @property numeric-string|null $calc_hourly_rate
  * @property int|null $user_id
  * @property bool $active
+ * @property bool $plannable
  * @property string|null $notes
  * @property int $lock_version
  */
@@ -46,6 +47,7 @@ use Illuminate\Support\Carbon;
     'calc_hourly_rate',
     'user_id',
     'active',
+    'plannable',
     'notes',
 ])]
 class Employee extends Model implements HasDocuments
@@ -62,6 +64,7 @@ class Employee extends Model implements HasDocuments
             'overtime_rate' => 'decimal:2',
             'calc_hourly_rate' => 'decimal:2',
             'active' => 'boolean',
+            'plannable' => 'boolean',
             'lock_version' => 'integer',
         ];
     }

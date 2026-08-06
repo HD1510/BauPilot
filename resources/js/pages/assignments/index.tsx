@@ -5,7 +5,6 @@ import {
     ChevronRight,
     Pencil,
     Plus,
-    TriangleAlert,
     Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -37,8 +36,8 @@ type AssignmentRow = {
     site: string | null;
     label: string;
     notes: string | null;
-    employees: { id: number; name: string; conflict: boolean }[];
-    vehicles: { id: number; plate: string; conflict: boolean }[];
+    employees: { id: number; name: string }[];
+    vehicles: { id: number; plate: string }[];
 };
 
 type Props = {
@@ -69,6 +68,15 @@ export default function AssignmentsIndex({
 }: Props) {
     const [editing, setEditing] = useState<AssignmentRow | null>(null);
     const [formDate, setFormDate] = useState<string>(week.today);
+    const [dropDay, setDropDay] = useState<string | null>(null);
+
+    const moveAssignment = (id: number, day: string) => {
+        router.patch(
+            `/assignments/${id}/move`,
+            { work_date: day },
+            { preserveScroll: true },
+        );
+    };
 
     return (
         <>
@@ -133,10 +141,42 @@ export default function AssignmentsIndex({
                             <div
                                 key={day}
                                 className={`grid content-start gap-2 rounded-lg border p-2 dark:border-sidebar-border ${
-                                    day === week.today
-                                        ? 'border-primary'
-                                        : 'border-sidebar-border/70'
+                                    dropDay === day
+                                        ? 'border-primary bg-primary/5'
+                                        : day === week.today
+                                          ? 'border-primary'
+                                          : 'border-sidebar-border/70'
                                 }`}
+                                onDragOver={(event) => {
+                                    if (!canWrite) {
+                                        return;
+                                    }
+
+                                    event.preventDefault();
+                                    setDropDay(day);
+                                }}
+                                onDragLeave={(event) => {
+                                    if (
+                                        !event.currentTarget.contains(
+                                            event.relatedTarget as Node | null,
+                                        )
+                                    ) {
+                                        setDropDay(null);
+                                    }
+                                }}
+                                onDrop={(event) => {
+                                    event.preventDefault();
+                                    setDropDay(null);
+                                    const id = Number(
+                                        event.dataTransfer.getData(
+                                            'text/plain',
+                                        ),
+                                    );
+
+                                    if (canWrite && id > 0) {
+                                        moveAssignment(id, day);
+                                    }
+                                }}
                             >
                                 <div className="flex items-center justify-between gap-1">
                                     <span className="text-sm font-semibold">
@@ -160,7 +200,18 @@ export default function AssignmentsIndex({
                                 {dayAssignments.map((assignment) => (
                                     <div
                                         key={assignment.id}
-                                        className="grid gap-1 rounded-md border border-sidebar-border/70 p-2 text-sm dark:border-sidebar-border"
+                                        className={`grid gap-1 rounded-md border border-sidebar-border/70 p-2 text-sm dark:border-sidebar-border ${
+                                            canWrite ? 'cursor-grab' : ''
+                                        }`}
+                                        draggable={canWrite}
+                                        onDragStart={(event) => {
+                                            event.dataTransfer.setData(
+                                                'text/plain',
+                                                String(assignment.id),
+                                            );
+                                            event.dataTransfer.effectAllowed =
+                                                'move';
+                                        }}
                                     >
                                         <div className="flex items-start justify-between gap-1">
                                             <span className="font-medium">
@@ -208,20 +259,8 @@ export default function AssignmentsIndex({
                                                 (employee) => (
                                                     <Badge
                                                         key={employee.id}
-                                                        variant={
-                                                            employee.conflict
-                                                                ? 'destructive'
-                                                                : 'secondary'
-                                                        }
-                                                        title={
-                                                            employee.conflict
-                                                                ? 'An diesem Tag mehrfach eingeteilt'
-                                                                : undefined
-                                                        }
+                                                        variant="secondary"
                                                     >
-                                                        {employee.conflict && (
-                                                            <TriangleAlert className="size-3" />
-                                                        )}
                                                         {employee.name}
                                                     </Badge>
                                                 ),
@@ -239,16 +278,7 @@ export default function AssignmentsIndex({
                                                     (vehicle) => (
                                                         <Badge
                                                             key={vehicle.id}
-                                                            variant={
-                                                                vehicle.conflict
-                                                                    ? 'destructive'
-                                                                    : 'outline'
-                                                            }
-                                                            title={
-                                                                vehicle.conflict
-                                                                    ? 'An diesem Tag mehrfach eingeteilt'
-                                                                    : undefined
-                                                            }
+                                                            variant="outline"
                                                         >
                                                             <Car className="size-3" />
                                                             {vehicle.plate}
@@ -311,6 +341,7 @@ function AssignmentForm({
     const { data, setData, post, patch, processing, errors, reset, transform } =
         useForm<{
             work_date: string;
+            work_date_until: string;
             project_id: string;
             site: string;
             notes: string;
@@ -318,6 +349,7 @@ function AssignmentForm({
             vehicle_ids: number[];
         }>({
             work_date: assignment?.work_date ?? date,
+            work_date_until: '',
             project_id: assignment?.project_id
                 ? String(assignment.project_id)
                 : 'none',
@@ -333,6 +365,7 @@ function AssignmentForm({
     transform((current) => ({
         ...current,
         project_id: current.project_id === 'none' ? null : current.project_id,
+        work_date_until: current.work_date_until || null,
     }));
 
     const toggle = (key: 'employee_ids' | 'vehicle_ids', id: number) => {
@@ -372,10 +405,10 @@ function AssignmentForm({
                         ? `Einteilung bearbeiten: ${assignment.label}`
                         : 'Neue Einteilung'
                 }
-                description="Baustelle frei eintragen oder ein Projekt wählen — doppelt eingeteilte Mitarbeiter werden markiert"
+                description="Baustelle frei eintragen oder ein Projekt wählen — mit „bis“ gleich für mehrere Tage"
             />
             <fieldset className="grid gap-4" disabled={processing}>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="grid gap-2">
                         <Label htmlFor="assignment-date">Tag</Label>
                         <Input
@@ -389,6 +422,23 @@ function AssignmentForm({
                         />
                         <InputError message={errors.work_date} />
                     </div>
+                    {!assignment && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="assignment-date-until">
+                                bis (optional)
+                            </Label>
+                            <Input
+                                id="assignment-date-until"
+                                type="date"
+                                value={data.work_date_until}
+                                min={data.work_date}
+                                onChange={(e) =>
+                                    setData('work_date_until', e.target.value)
+                                }
+                            />
+                            <InputError message={errors.work_date_until} />
+                        </div>
+                    )}
                     <div className="grid gap-2">
                         <Label htmlFor="assignment-project">
                             Projekt (optional)
@@ -451,7 +501,7 @@ function AssignmentForm({
                         ))}
                         {employees.length === 0 && (
                             <span className="text-sm text-muted-foreground">
-                                Noch keine Mitarbeiter angelegt.
+                                Noch keine planbaren Mitarbeiter angelegt.
                             </span>
                         )}
                     </div>

@@ -32,6 +32,7 @@ class EmployeeRequest extends MasterDataRequest
                 Rule::exists('company_user', 'user_id')->where('company_id', $this->activeCompanyId()),
             ],
             'active' => ['boolean'],
+            'plannable' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }

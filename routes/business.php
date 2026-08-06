@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::patch('assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
+    Route::patch('assignments/{assignment}/move', [AssignmentController::class, 'move'])->name('assignments.move');
     Route::delete('assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
 
     // Angebote mit Statuslauf und Übernahme ins Projekt

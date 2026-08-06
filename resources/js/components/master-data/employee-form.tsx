@@ -24,6 +24,7 @@ export type EmployeeFormValues = {
     overtime_rate: string | null;
     calc_hourly_rate: string | null;
     user_id: number | null;
+    plannable?: boolean;
     notes: string | null;
     lock_version?: number;
 };
@@ -61,6 +62,7 @@ export function EmployeeForm({
             overtime_rate: employee?.overtime_rate ?? '',
             calc_hourly_rate: employee?.calc_hourly_rate ?? '',
             user_id: employee?.user_id ? String(employee.user_id) : 'none',
+            plannable: employee?.plannable ?? true,
             notes: employee?.notes ?? '',
             lock_version: employee?.lock_version ?? 0,
             create_account: false,
@@ -359,6 +361,16 @@ export function EmployeeForm({
                         )}
                     </div>
                 )}
+
+                <Label className="flex items-center gap-2 text-sm font-normal">
+                    <Checkbox
+                        checked={data.plannable}
+                        onCheckedChange={(checked) =>
+                            setData('plannable', checked === true)
+                        }
+                    />
+                    In der Einteilung planbar (für Büro-Personal abwählen)
+                </Label>
 
                 <div className="grid gap-2">
                     <Label htmlFor="notes">Notizen</Label>

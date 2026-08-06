@@ -11,7 +11,6 @@ use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -20,8 +19,8 @@ use Inertia\Response;
 
 /**
  * Einteilung: Wochenansicht — je Tag die Baustellen mit zugeteilten
- * Mitarbeitern und Fahrzeugen. Doppelt eingeteilte Mitarbeiter bzw.
- * Fahrzeuge werden am selben Tag markiert.
+ * Mitarbeitern und Fahrzeugen. Einträge lassen sich für einen ganzen
+ * Zeitraum anlegen und per Drag & Drop auf andere Tage verschieben.
  */
 class AssignmentController extends Controller
 {
@@ -39,11 +38,6 @@ class AssignmentController extends Controller
             ->orderBy('work_date')
             ->orderBy('id')
             ->get();
-
-        // Doppelbelegung je Tag: derselbe Mitarbeiter bzw. dasselbe
-        // Fahrzeug in mehr als einer Einteilung.
-        $employeeConflicts = $this->conflicts($assignments, 'employees');
-        $vehicleConflicts = $this->conflicts($assignments, 'vehicles');
 
         $canWrite = Gate::allows('create', Assignment::class);
 
@@ -65,15 +59,14 @@ class AssignmentController extends Controller
                 'employees' => $assignment->employees->map(fn (Employee $employee): array => [
                     'id' => $employee->id,
                     'name' => $employee->name,
-                    'conflict' => in_array($assignment->work_date->toDateString().'|'.$employee->id, $employeeConflicts, true),
                 ])->values(),
                 'vehicles' => $assignment->vehicles->map(fn (Vehicle $vehicle): array => [
                     'id' => $vehicle->id,
                     'plate' => $vehicle->plate,
-                    'conflict' => in_array($assignment->work_date->toDateString().'|'.$vehicle->id, $vehicleConflicts, true),
                 ])->values(),
             ])->values(),
-            'employees' => Employee::query()->where('active', true)->orderBy('name')->get(['id', 'name'])
+            // Nur aktive, als planbar markierte Mitarbeiter stehen zur Wahl.
+            'employees' => Employee::query()->where('active', true)->where('plannable', true)->orderBy('name')->get(['id', 'name'])
                 ->map(fn (Employee $employee): array => ['id' => $employee->id, 'name' => $employee->name])->values(),
             'vehicles' => Vehicle::query()->where('active', true)->orderBy('plate')->get(['id', 'plate'])
                 ->map(fn (Vehicle $vehicle): array => ['id' => $vehicle->id, 'plate' => $vehicle->plate])->values(),
@@ -87,15 +80,27 @@ class AssignmentController extends Controller
     {
         Gate::authorize('create', Assignment::class);
 
-        [$validated, $employeeIds, $vehicleIds] = $this->validated($request);
+        [$validated, $employeeIds, $vehicleIds] = $this->validated($request, withRange: true);
 
-        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds): void {
-            $assignment = Assignment::create($validated);
-            $assignment->employees()->sync($employeeIds);
-            $assignment->vehicles()->sync($vehicleIds);
+        $from = CarbonImmutable::parse($validated['work_date']);
+        $until = isset($validated['work_date_until'])
+            ? CarbonImmutable::parse($validated['work_date_until'])
+            : $from;
+        unset($validated['work_date_until']);
+
+        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds, $from, $until): void {
+            for ($day = $from; $day->lessThanOrEqualTo($until); $day = $day->addDay()) {
+                $assignment = Assignment::create([...$validated, 'work_date' => $day->toDateString()]);
+                $assignment->employees()->sync($employeeIds);
+                $assignment->vehicles()->sync($vehicleIds);
+            }
         });
 
-        return back()->with('success', 'Einteilung gespeichert.');
+        $days = (int) $from->diffInDays($until) + 1;
+
+        return back()->with('success', $days > 1
+            ? "Einteilung für {$days} Tage angelegt."
+            : 'Einteilung gespeichert.');
     }
 
     public function update(Request $request, Assignment $assignment): RedirectResponse
@@ -113,6 +118,24 @@ class AssignmentController extends Controller
         return back()->with('success', 'Einteilung gespeichert.');
     }
 
+    /**
+     * Drag & Drop: nur den Tag wechseln, alles andere bleibt.
+     */
+    public function move(Request $request, Assignment $assignment): RedirectResponse
+    {
+        Gate::authorize('update', $assignment);
+
+        $validated = $request->validate(
+            ['work_date' => ['required', 'date']],
+            [],
+            ['work_date' => 'Tag'],
+        );
+
+        $assignment->update(['work_date' => $validated['work_date']]);
+
+        return back()->with('success', 'Einteilung verschoben.');
+    }
+
     public function destroy(Assignment $assignment): RedirectResponse
     {
         Gate::authorize('delete', $assignment);
@@ -125,11 +148,11 @@ class AssignmentController extends Controller
     /**
      * @return array{0: array<string, mixed>, 1: list<int>, 2: list<int>}
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, bool $withRange = false): array
     {
         $companyId = app(CompanyContext::class)->requireId();
 
-        $validated = $request->validate([
+        $rules = [
             'work_date' => ['required', 'date'],
             'project_id' => [
                 'nullable',
@@ -142,10 +165,27 @@ class AssignmentController extends Controller
             'employee_ids.*' => [Rule::exists('employees', 'id')->where('company_id', $companyId)],
             'vehicle_ids' => ['array'],
             'vehicle_ids.*' => [Rule::exists('vehicles', 'id')->where('company_id', $companyId)],
-        ], [
+        ];
+
+        if ($withRange) {
+            // Zeitraum-Anlage: ein Eintrag je Tag, begrenzt auf 31 Tage.
+            $rules['work_date_until'] = [
+                'nullable', 'date', 'after_or_equal:work_date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $from = CarbonImmutable::make($request->input('work_date'));
+
+                    if ($from !== null && CarbonImmutable::parse((string) $value)->greaterThan($from->addDays(31))) {
+                        $fail('Der Zeitraum darf höchstens 31 Tage umfassen.');
+                    }
+                },
+            ];
+        }
+
+        $validated = $request->validate($rules, [
             'site.required_without' => 'Bitte eine Baustelle eintragen oder ein Projekt wählen.',
         ], [
             'work_date' => 'Tag',
+            'work_date_until' => 'bis',
             'project_id' => 'Projekt',
             'site' => 'Baustelle',
             'employee_ids' => 'Mitarbeiter',
@@ -158,32 +198,5 @@ class AssignmentController extends Controller
         unset($validated['employee_ids'], $validated['vehicle_ids']);
 
         return [$validated, $employeeIds, $vehicleIds];
-    }
-
-    /**
-     * Schlüssel "datum|id" aller Mitarbeiter bzw. Fahrzeuge, die am
-     * selben Tag in mehr als einer Einteilung stehen.
-     *
-     * @param  Collection<int, Assignment>  $assignments
-     * @return list<string>
-     */
-    private function conflicts($assignments, string $relation): array
-    {
-        $seen = [];
-        $conflicts = [];
-
-        foreach ($assignments as $assignment) {
-            foreach ($assignment->{$relation} as $item) {
-                $key = $assignment->work_date->toDateString().'|'.$item->id;
-
-                if (isset($seen[$key])) {
-                    $conflicts[$key] = true;
-                }
-
-                $seen[$key] = true;
-            }
-        }
-
-        return array_keys($conflicts);
     }
 }

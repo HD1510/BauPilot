@@ -10,7 +10,7 @@ use App\Support\Tenancy\CompanyContext;
 
 /**
  * Einteilung: Baustellen je Tag mit zugeteilten Mitarbeitern und
- * Fahrzeugen. Doppelbelegungen am selben Tag werden markiert.
+ * Fahrzeugen — auch für ganze Zeiträume und per Verschieben.
  */
 afterEach(function () {
     app(CompanyContext::class)->clear();
@@ -85,26 +85,88 @@ test('im betreff steht die baustelle des projekts, nicht der projekttitel', func
             ->where('assignments.0.label', 'Goethestraße 20, 2333 Leopoldsdorf'));
 });
 
-test('doppelt eingeteilte mitarbeiter werden am selben tag markiert', function () {
+test('mit bis-datum entsteht je tag ein eintrag', function () {
     [, $company] = actingMember();
     app(CompanyContext::class)->set($company);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
-    $other = Employee::factory()->create(['company_id' => $company->id]);
+    app(CompanyContext::class)->clear();
 
+    $this->post('/assignments', [
+        'work_date' => '2026-08-05',
+        'work_date_until' => '2026-08-07',
+        'site' => 'Baustelle Mehrtägig',
+        'employee_ids' => [$employee->id],
+    ])->assertRedirect()->assertSessionHas('success', 'Einteilung für 3 Tage angelegt.');
+
+    $assignments = Assignment::withoutGlobalScopes()->orderBy('work_date')->get();
+
+    expect($assignments->pluck('work_date')->map->toDateString()->all())
+        ->toBe(['2026-08-05', '2026-08-06', '2026-08-07'])
+        ->and($assignments->every(fn (Assignment $assignment) => $assignment->employees()->count() === 1))
+        ->toBeTrue();
+});
+
+test('ein zeitraum über 31 tagen wird abgelehnt', function () {
+    actingMember();
+
+    $this->from('/assignments')->post('/assignments', [
+        'work_date' => '2026-08-01',
+        'work_date_until' => '2026-09-15',
+        'site' => 'Baustelle Zulang',
+    ])->assertRedirect('/assignments')->assertSessionHasErrors('work_date_until');
+
+    expect(Assignment::withoutGlobalScopes()->count())->toBe(0);
+});
+
+test('verschieben ändert nur den tag', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $assignment = Assignment::factory()->create([
+        'company_id' => $company->id,
+        'work_date' => '2026-08-05',
+        'site' => 'Baustelle Beweglich',
+    ]);
+    $employee = Employee::factory()->create(['company_id' => $company->id]);
+    $assignment->employees()->sync([$employee->id]);
+    app(CompanyContext::class)->clear();
+
+    $this->patch("/assignments/{$assignment->id}/move", [
+        'work_date' => '2026-08-07',
+    ])->assertRedirect()->assertSessionHas('success', 'Einteilung verschoben.');
+
+    expect($assignment->refresh()->work_date->toDateString())->toBe('2026-08-07')
+        ->and($assignment->site)->toBe('Baustelle Beweglich')
+        ->and($assignment->employees()->count())->toBe(1);
+});
+
+test('nicht planbare mitarbeiter stehen nicht zur auswahl', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    Employee::factory()->create(['company_id' => $company->id, 'name' => 'Max Maurer', 'plannable' => true]);
+    Employee::factory()->create(['company_id' => $company->id, 'name' => 'Susi Büro', 'plannable' => false]);
+    app(CompanyContext::class)->clear();
+
+    $this->get('/assignments')
+        ->assertInertia(fn ($page) => $page
+            ->has('employees', 1)
+            ->where('employees.0.name', 'Max Maurer'));
+});
+
+test('doppelt eingeteilte mitarbeiter erscheinen ohne markierung', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $employee = Employee::factory()->create(['company_id' => $company->id]);
     $first = Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-08-05']);
     $second = Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-08-05']);
-    $first->employees()->sync([$employee->id, $other->id]);
+    $first->employees()->sync([$employee->id]);
     $second->employees()->sync([$employee->id]);
     app(CompanyContext::class)->clear();
 
     $this->get('/assignments?date=2026-08-05')
         ->assertInertia(fn ($page) => $page
-            ->component('assignments/index')
-            ->where('week.monday', '2026-08-03')
             ->has('assignments', 2)
-            ->where('assignments.0.employees', fn ($employees) => collect($employees)
-                ->every(fn ($row) => $row['conflict'] === ($row['id'] === $employee->id)))
-            ->where('assignments.1.employees.0.conflict', true));
+            ->where('assignments.0.employees.0', ['id' => $employee->id, 'name' => $employee->name])
+            ->where('assignments.1.employees.0', ['id' => $employee->id, 'name' => $employee->name]));
 });
 
 test('bearbeiten tauscht mitarbeiter und fahrzeuge aus', function () {
