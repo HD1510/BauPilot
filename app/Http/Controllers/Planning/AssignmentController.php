@@ -11,6 +11,7 @@ use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,7 @@ class AssignmentController extends Controller
             ->whereBetween('work_date', [$monday->toDateString(), $sunday->toDateString()])
             ->with(['project:id,title,site_address', 'employees:id,name', 'vehicles:id,plate'])
             ->orderBy('work_date')
+            ->orderBy('position')
             ->orderBy('id')
             ->get();
 
@@ -56,6 +58,7 @@ class AssignmentController extends Controller
                 'site' => $assignment->site,
                 'label' => $assignment->label(),
                 'notes' => $assignment->notes,
+                'color' => $assignment->color,
                 'employees' => $assignment->employees->map(fn (Employee $employee): array => [
                     'id' => $employee->id,
                     'name' => $employee->name,
@@ -88,9 +91,18 @@ class AssignmentController extends Controller
             : $from;
         unset($validated['work_date_until']);
 
-        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds, $from, $until): void {
+        // Jede neue Anlage bekommt die nächste Farbe der Palette — alle
+        // Tage eines Zeitraums teilen sich dieselbe.
+        $color = ((int) Assignment::query()->max('id') + 1) % 10;
+
+        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds, $from, $until, $color): void {
             for ($day = $from; $day->lessThanOrEqualTo($until); $day = $day->addDay()) {
-                $assignment = Assignment::create([...$validated, 'work_date' => $day->toDateString()]);
+                $assignment = Assignment::create([
+                    ...$validated,
+                    'work_date' => $day->toDateString(),
+                    'color' => $color,
+                    'position' => (int) Assignment::query()->whereDate('work_date', $day->toDateString())->max('position') + 1,
+                ]);
                 $assignment->employees()->sync($employeeIds);
                 $assignment->vehicles()->sync($vehicleIds);
             }
@@ -119,19 +131,45 @@ class AssignmentController extends Controller
     }
 
     /**
-     * Drag & Drop: nur den Tag wechseln, alles andere bleibt.
+     * Drag & Drop: Tag wechseln und/oder innerhalb des Tages einsortieren —
+     * alles andere bleibt. Ohne Position wird hinten angehängt.
      */
     public function move(Request $request, Assignment $assignment): RedirectResponse
     {
         Gate::authorize('update', $assignment);
 
         $validated = $request->validate(
-            ['work_date' => ['required', 'date']],
+            [
+                'work_date' => ['required', 'date'],
+                'position' => ['nullable', 'integer', 'min:0'],
+            ],
             [],
-            ['work_date' => 'Tag'],
+            ['work_date' => 'Tag', 'position' => 'Position'],
         );
 
-        $assignment->update(['work_date' => $validated['work_date']]);
+        DB::transaction(function () use ($assignment, $validated): void {
+            $day = CarbonImmutable::parse($validated['work_date'])->toDateString();
+
+            $others = Assignment::query()
+                ->whereDate('work_date', $day)
+                ->whereKeyNot($assignment->id)
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get()
+                ->all();
+
+            $index = isset($validated['position'])
+                ? min((int) $validated['position'], count($others))
+                : count($others);
+
+            $assignment->work_date = Carbon::parse($day);
+            array_splice($others, $index, 0, [$assignment]);
+
+            foreach ($others as $position => $item) {
+                $item->position = $position;
+                $item->save();
+            }
+        });
 
         return back()->with('success', 'Einteilung verschoben.');
     }

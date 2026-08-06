@@ -106,6 +106,45 @@ test('mit bis-datum entsteht je tag ein eintrag', function () {
         ->toBeTrue();
 });
 
+test('zeitraum-einträge teilen sich eine farbe, neue anlagen wechseln sie', function () {
+    actingMember();
+
+    $this->post('/assignments', [
+        'work_date' => '2026-08-05',
+        'work_date_until' => '2026-08-06',
+        'site' => 'Baustelle A',
+    ]);
+    $this->post('/assignments', [
+        'work_date' => '2026-08-05',
+        'site' => 'Baustelle B',
+    ]);
+
+    $colorsA = Assignment::withoutGlobalScopes()->where('site', 'Baustelle A')->pluck('color')->unique();
+    $colorB = Assignment::withoutGlobalScopes()->where('site', 'Baustelle B')->sole()->color;
+
+    expect($colorsA)->toHaveCount(1)
+        ->and($colorB)->not->toBe($colorsA->first());
+});
+
+test('verschieben auf eine position sortiert den tag neu', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $first = Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-08-05', 'position' => 0]);
+    $second = Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-08-05', 'position' => 1]);
+    $third = Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-08-05', 'position' => 2]);
+    app(CompanyContext::class)->clear();
+
+    $this->patch("/assignments/{$third->id}/move", [
+        'work_date' => '2026-08-05',
+        'position' => 0,
+    ])->assertRedirect();
+
+    $order = Assignment::withoutGlobalScopes()
+        ->orderBy('position')->orderBy('id')->pluck('id')->all();
+
+    expect($order)->toBe([$third->id, $first->id, $second->id]);
+});
+
 test('ein zeitraum über 31 tagen wird abgelehnt', function () {
     actingMember();
 

@@ -22,8 +22,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $project_id
  * @property string|null $site
  * @property string|null $notes
+ * @property int $color
+ * @property int $position
  */
-#[Fillable(['work_date', 'project_id', 'site', 'notes'])]
+#[Fillable(['work_date', 'project_id', 'site', 'notes', 'color', 'position'])]
 class Assignment extends Model
 {
     /** @use HasFactory<AssignmentFactory> */
@@ -33,6 +35,8 @@ class Assignment extends Model
     {
         return [
             'work_date' => 'date',
+            'color' => 'integer',
+            'position' => 'integer',
         ];
     }
 

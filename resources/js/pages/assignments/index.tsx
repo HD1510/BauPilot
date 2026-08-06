@@ -36,9 +36,24 @@ type AssignmentRow = {
     site: string | null;
     label: string;
     notes: string | null;
+    color: number;
     employees: { id: number; name: string }[];
     vehicles: { id: number; plate: string }[];
 };
+
+// Farbpalette je Eintrag — Zeitraum-Anlagen teilen sich eine Farbe.
+const CARD_COLORS = [
+    'border-l-slate-400 bg-slate-50 dark:bg-slate-900/60',
+    'border-l-rose-400 bg-rose-50 dark:bg-rose-950/40',
+    'border-l-orange-400 bg-orange-50 dark:bg-orange-950/40',
+    'border-l-amber-400 bg-amber-50 dark:bg-amber-950/40',
+    'border-l-lime-400 bg-lime-50 dark:bg-lime-950/40',
+    'border-l-emerald-400 bg-emerald-50 dark:bg-emerald-950/40',
+    'border-l-cyan-400 bg-cyan-50 dark:bg-cyan-950/40',
+    'border-l-blue-400 bg-blue-50 dark:bg-blue-950/40',
+    'border-l-violet-400 bg-violet-50 dark:bg-violet-950/40',
+    'border-l-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/40',
+];
 
 type Props = {
     week: { monday: string; previous: string; next: string; today: string };
@@ -70,10 +85,10 @@ export default function AssignmentsIndex({
     const [formDate, setFormDate] = useState<string>(week.today);
     const [dropDay, setDropDay] = useState<string | null>(null);
 
-    const moveAssignment = (id: number, day: string) => {
+    const moveAssignment = (id: number, day: string, position?: number) => {
         router.patch(
             `/assignments/${id}/move`,
-            { work_date: day },
+            { work_date: day, position: position ?? null },
             { preserveScroll: true },
         );
     };
@@ -197,12 +212,15 @@ export default function AssignmentsIndex({
                                         </Button>
                                     )}
                                 </div>
-                                {dayAssignments.map((assignment) => (
+                                {dayAssignments.map((assignment, index) => (
                                     <div
                                         key={assignment.id}
-                                        className={`grid gap-1 rounded-md border border-sidebar-border/70 p-2 text-sm dark:border-sidebar-border ${
-                                            canWrite ? 'cursor-grab' : ''
-                                        }`}
+                                        className={`grid gap-1 rounded-md border border-l-4 border-sidebar-border/70 p-2 text-sm dark:border-sidebar-border ${
+                                            CARD_COLORS[
+                                                assignment.color %
+                                                    CARD_COLORS.length
+                                            ]
+                                        } ${canWrite ? 'cursor-grab' : ''}`}
                                         draggable={canWrite}
                                         onDragStart={(event) => {
                                             event.dataTransfer.setData(
@@ -211,6 +229,26 @@ export default function AssignmentsIndex({
                                             );
                                             event.dataTransfer.effectAllowed =
                                                 'move';
+                                        }}
+                                        onDrop={(event) => {
+                                            // Auf einer Karte abgelegt:
+                                            // an deren Stelle einsortieren.
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            setDropDay(null);
+                                            const id = Number(
+                                                event.dataTransfer.getData(
+                                                    'text/plain',
+                                                ),
+                                            );
+
+                                            if (
+                                                canWrite &&
+                                                id > 0 &&
+                                                id !== assignment.id
+                                            ) {
+                                                moveAssignment(id, day, index);
+                                            }
                                         }}
                                     >
                                         <div className="flex items-start justify-between gap-1">
