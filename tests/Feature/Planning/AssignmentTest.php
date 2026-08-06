@@ -4,6 +4,7 @@ use App\Enums\CompanyRole;
 use App\Models\Assignment;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\Project;
 use App\Models\Vehicle;
 use App\Support\Tenancy\CompanyContext;
 
@@ -61,6 +62,27 @@ test('ein ungültiges projekt wird als validierungsfehler abgefangen', function 
     ])->assertRedirect('/assignments')->assertSessionHasErrors('project_id');
 
     expect(Assignment::withoutGlobalScopes()->count())->toBe(0);
+});
+
+test('im betreff steht die baustelle des projekts, nicht der projekttitel', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $project = Project::factory()->create([
+        'company_id' => $company->id,
+        'title' => 'BV Musterweg',
+        'site_address' => 'Goethestraße 20, 2333 Leopoldsdorf',
+    ]);
+    Assignment::factory()->create([
+        'company_id' => $company->id,
+        'work_date' => '2026-08-05',
+        'project_id' => $project->id,
+        'site' => null,
+    ]);
+    app(CompanyContext::class)->clear();
+
+    $this->get('/assignments?date=2026-08-05')
+        ->assertInertia(fn ($page) => $page
+            ->where('assignments.0.label', 'Goethestraße 20, 2333 Leopoldsdorf'));
 });
 
 test('doppelt eingeteilte mitarbeiter werden am selben tag markiert', function () {

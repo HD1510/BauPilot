@@ -55,10 +55,13 @@ class Assignment extends Model
     }
 
     /**
-     * Anzeigename der Baustelle: Projekttitel oder Freitext.
+     * Anzeigename: immer die Baustelle — der Freitext, sonst die
+     * Baustellenadresse des Projekts, erst zuletzt der Projekttitel.
      */
     public function label(): string
     {
-        return $this->project->title ?? (string) $this->site;
+        return $this->site
+            ?? $this->project->site_address
+            ?? (string) $this->project?->title;
     }
 }

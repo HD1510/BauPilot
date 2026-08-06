@@ -35,7 +35,7 @@ class AssignmentController extends Controller
 
         $assignments = Assignment::query()
             ->whereBetween('work_date', [$monday->toDateString(), $sunday->toDateString()])
-            ->with(['project:id,title', 'employees:id,name', 'vehicles:id,plate'])
+            ->with(['project:id,title,site_address', 'employees:id,name', 'vehicles:id,plate'])
             ->orderBy('work_date')
             ->orderBy('id')
             ->get();
