@@ -5,6 +5,7 @@ import {
     ChevronRight,
     Pencil,
     Plus,
+    Printer,
     Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -103,6 +104,16 @@ export default function AssignmentsIndex({
                         description="Wer ist an welchem Tag auf welcher Baustelle — samt Fahrzeug"
                     />
                     <div className="flex items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <a
+                                href={`/assignments/print?date=${week.monday}`}
+                                target="_blank"
+                                rel="noopener"
+                            >
+                                <Printer className="size-4" />
+                                Drucken / PDF
+                            </a>
+                        </Button>
                         <Button
                             variant="outline"
                             size="icon"

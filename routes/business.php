@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->group(function () {
     // Einteilung: Baustellen je Tag mit Mitarbeitern und Fahrzeugen
     Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::get('assignments/print', [AssignmentController::class, 'print'])->name('assignments.print');
     Route::post('assignments', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::patch('assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
     Route::patch('assignments/{assignment}/move', [AssignmentController::class, 'move'])->name('assignments.move');

@@ -242,6 +242,42 @@ test('löschen entfernt die einteilung samt zuteilungen', function () {
         ->and($employee->fresh())->not->toBeNull();
 });
 
+test('druckansicht lässt leeres wochenende weg', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    Assignment::factory()->create([
+        'company_id' => $company->id,
+        'work_date' => '2026-08-05', // Mittwoch
+        'site' => 'Baustelle Werktag',
+    ]);
+    app(CompanyContext::class)->clear();
+
+    $this->get('/assignments/print?date=2026-08-05')
+        ->assertOk()
+        ->assertSee('Baustelle Werktag')
+        ->assertSee('Mittwoch')
+        ->assertSee('Montag')
+        ->assertDontSee('Samstag')
+        ->assertDontSee('Sonntag');
+});
+
+test('druckansicht zeigt den samstag, wenn dort eingeteilt ist', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    Assignment::factory()->create([
+        'company_id' => $company->id,
+        'work_date' => '2026-08-08', // Samstag
+        'site' => 'Baustelle Wochenende',
+    ]);
+    app(CompanyContext::class)->clear();
+
+    $this->get('/assignments/print?date=2026-08-05')
+        ->assertOk()
+        ->assertSee('Samstag')
+        ->assertSee('Baustelle Wochenende')
+        ->assertDontSee('Sonntag');
+});
+
 test('rolle baustelle sieht die einteilung, darf aber nicht planen', function () {
     [, $company] = actingMember(CompanyRole::Site);
 

@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Vehicle;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,6 +26,27 @@ use Inertia\Response;
  */
 class AssignmentController extends Controller
 {
+    /**
+     * Druckfarben je Palettenplatz: [Randfarbe, Hintergrund] — das
+     * Gegenstück zur CARD_COLORS-Palette der Wochenansicht.
+     */
+    private const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+    private const MONTHS = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+    private const PRINT_COLORS = [
+        ['#94a3b8', '#f8fafc'],
+        ['#fb7185', '#fff1f2'],
+        ['#fb923c', '#fff7ed'],
+        ['#fbbf24', '#fffbeb'],
+        ['#a3e635', '#f7fee7'],
+        ['#34d399', '#ecfdf5'],
+        ['#22d3ee', '#ecfeff'],
+        ['#60a5fa', '#eff6ff'],
+        ['#a78bfa', '#f5f3ff'],
+        ['#e879f9', '#fdf4ff'],
+    ];
+
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Assignment::class);
@@ -76,6 +98,59 @@ class AssignmentController extends Controller
             'projects' => Project::query()->orderBy('title')->get(['id', 'title'])
                 ->map(fn (Project $project): array => ['id' => $project->id, 'title' => $project->title])->values(),
             'canWrite' => $canWrite,
+        ]);
+    }
+
+    /**
+     * Wochenplan als Druckansicht — über den Browser ausdrucken oder
+     * als PDF speichern. Samstag und Sonntag erscheinen nur, wenn dort
+     * etwas eingeteilt ist.
+     */
+    public function print(Request $request): View
+    {
+        Gate::authorize('viewAny', Assignment::class);
+
+        $anchor = CarbonImmutable::make($request->query('date')) ?? CarbonImmutable::today();
+        $monday = $anchor->startOfWeek();
+
+        $assignments = Assignment::query()
+            ->whereBetween('work_date', [$monday->toDateString(), $monday->addDays(6)->toDateString()])
+            ->with(['project:id,title,site_address', 'employees:id,name', 'vehicles:id,plate'])
+            ->orderBy('work_date')
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn (Assignment $assignment): string => $assignment->work_date->toDateString());
+
+        // Mo–Fr immer, Sa/So nur mit Einträgen.
+        $days = collect(range(0, 6))
+            ->map(fn (int $offset): CarbonImmutable => $monday->addDays($offset))
+            ->filter(fn (CarbonImmutable $day): bool => $day->isWeekday() || $assignments->has($day->toDateString()))
+            ->map(fn (CarbonImmutable $day): array => [
+                'label' => self::WEEKDAYS[$day->dayOfWeekIso - 1].', '.$day->day.'. '.self::MONTHS[$day->month - 1],
+                'assignments' => $assignments->get($day->toDateString(), collect())
+                    ->map(fn (Assignment $assignment): array => [
+                        'label' => $assignment->label(),
+                        'border' => self::PRINT_COLORS[$assignment->color % count(self::PRINT_COLORS)][0],
+                        'background' => self::PRINT_COLORS[$assignment->color % count(self::PRINT_COLORS)][1],
+                        'employees' => $assignment->employees->pluck('name')->all(),
+                        'vehicles' => $assignment->vehicles->pluck('plate')->all(),
+                        'notes' => $assignment->notes,
+                    ])->values()->all(),
+            ])
+            ->values()
+            ->all();
+
+        $sunday = $monday->addDays(6);
+        $title = 'KW '.$monday->isoWeek();
+        $range = $monday->day.'. '.self::MONTHS[$monday->month - 1]
+            .' bis '.$sunday->day.'. '.self::MONTHS[$sunday->month - 1].' '.$sunday->year;
+
+        return view('assignments.print', [
+            'title' => $title,
+            'range' => $range,
+            'company' => app(CompanyContext::class)->requireCompany()->name,
+            'days' => $days,
         ]);
     }
 
