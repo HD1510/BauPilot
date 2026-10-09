@@ -69,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
     Route::post('vehicles/{vehicle}/dates', [VehicleDateController::class, 'store'])->name('vehicles.dates.store');
     Route::delete('vehicles/{vehicle}/dates/{date}', [VehicleDateController::class, 'destroy'])->name('vehicles.dates.destroy');
+    // Wiederkehrende Fahrzeug-Fristen erledigen (schiebt ein Jahr weiter)
+    Route::post('vehicles/{vehicle}/inspection-done', [VehicleDateController::class, 'inspectionDone'])->name('vehicles.inspection-done');
+    Route::post('vehicles/{vehicle}/vignette-done', [VehicleDateController::class, 'vignetteDone'])->name('vehicles.vignette-done');
+    Route::post('vehicles/{vehicle}/dates/{date}/done', [VehicleDateController::class, 'dateDone'])->name('vehicles.dates.done');
 
     // Material (Artikel-Preisliste) — inkl. Einlesen per PDF/Foto
     Route::get('materials', [MaterialController::class, 'index'])->name('materials.index');

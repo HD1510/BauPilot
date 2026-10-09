@@ -20,6 +20,9 @@ final readonly class Deadline
         // Aufgaben-Erinnerung an Zuständige (Abschnitt 7): ist ein
         // Zuständiger gesetzt, geht die Frist im Digest nur an ihn.
         public ?int $assigneeUserId = null,
+        // Wiederkehrende Termine (z. B. Pickerl): POST hierauf schiebt
+        // die Frist um ein Jahr weiter.
+        public ?string $completeUrl = null,
     ) {}
 
     public function isOverdue(CarbonImmutable $today): bool
@@ -40,6 +43,7 @@ final readonly class Deadline
             'subtitle' => $this->subtitle,
             'url' => $this->url,
             'overdue' => $this->isOverdue($today),
+            'complete_url' => $this->completeUrl,
         ];
     }
 }

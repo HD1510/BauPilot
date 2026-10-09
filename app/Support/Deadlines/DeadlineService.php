@@ -252,6 +252,7 @@ class DeadlineService
                     trim(($vehicle->brand ?? '').' '.($vehicle->model ?? '')) ?: null,
                     "/vehicles/{$vehicle->id}/edit",
                     financial: false,
+                    completeUrl: "/vehicles/{$vehicle->id}/inspection-done",
                 );
             }
 
@@ -263,6 +264,7 @@ class DeadlineService
                     null,
                     "/vehicles/{$vehicle->id}/edit",
                     financial: false,
+                    completeUrl: "/vehicles/{$vehicle->id}/vignette-done",
                 );
             }
         }
@@ -278,6 +280,7 @@ class DeadlineService
                 null,
                 "/vehicles/{$date->vehicle_id}/edit",
                 financial: false,
+                completeUrl: "/vehicles/{$date->vehicle_id}/dates/{$date->id}/done",
             ));
 
         return [...$deadlines, ...$extraDates->all()];
