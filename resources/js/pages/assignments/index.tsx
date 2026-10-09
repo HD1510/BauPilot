@@ -166,7 +166,7 @@ export default function AssignmentsIndex({
                         return (
                             <div
                                 key={day}
-                                className={`grid content-start gap-2 rounded-lg border p-2 dark:border-sidebar-border ${
+                                className={`grid min-w-0 content-start gap-2 rounded-lg border p-2 dark:border-sidebar-border ${
                                     dropDay === day
                                         ? 'border-primary bg-primary/5'
                                         : day === week.today
@@ -226,7 +226,7 @@ export default function AssignmentsIndex({
                                 {dayAssignments.map((assignment, index) => (
                                     <div
                                         key={assignment.id}
-                                        className={`grid gap-1 rounded-md border border-l-4 border-sidebar-border/70 p-2 text-sm dark:border-sidebar-border ${
+                                        className={`grid min-w-0 gap-1 rounded-md border border-l-4 border-sidebar-border/70 p-2 text-sm break-words dark:border-sidebar-border ${
                                             CARD_COLORS[
                                                 assignment.color %
                                                     CARD_COLORS.length
@@ -309,6 +309,7 @@ export default function AssignmentsIndex({
                                                     <Badge
                                                         key={employee.id}
                                                         variant="secondary"
+                                                        className="max-w-full whitespace-normal"
                                                     >
                                                         {employee.name}
                                                     </Badge>
@@ -328,6 +329,7 @@ export default function AssignmentsIndex({
                                                         <Badge
                                                             key={vehicle.id}
                                                             variant="outline"
+                                                            className="max-w-full whitespace-normal"
                                                         >
                                                             <Car className="size-3" />
                                                             {vehicle.plate}
