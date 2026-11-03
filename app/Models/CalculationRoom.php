@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric-string|null $length
  * @property numeric-string|null $width
  * @property numeric-string $height
+ * @property numeric-string|null $tile_height
  * @property numeric-string|null $length2
  * @property numeric-string|null $width2
  * @property numeric-string|null $depth
@@ -42,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'length',
     'width',
     'height',
+    'tile_height',
     'length2',
     'width2',
     'depth',
@@ -64,6 +66,7 @@ class CalculationRoom extends Model
             'length' => 'decimal:2',
             'width' => 'decimal:2',
             'height' => 'decimal:2',
+            'tile_height' => 'decimal:2',
             'length2' => 'decimal:2',
             'width2' => 'decimal:2',
             'depth' => 'decimal:2',

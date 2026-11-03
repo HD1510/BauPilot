@@ -82,6 +82,36 @@ test('wandfliesen: fliesenband bis fliesenhöhe, maler übernimmt den rest', fun
         ->and($q['painting_area'])->toBe(round(8.8 * 0.4 + 4.8, 2));
 });
 
+test('die fliesenhöhe je raum übersteuert die vorgabe — maler und silikon ziehen mit', function () {
+    $room = roomFixture();
+    $room->material = 'wall_tiles';
+    $room->length = '2.4';
+    $room->width = '2.0';
+    $room->edges = 2;
+    $room->tile_height = '1.2';
+
+    // Umfang 8,8; Band 8,8 × 1,2 statt × 2,1 (Vorgabe)
+    $q = (new RoomCalculator)->quantities($room, calcFixture());
+
+    expect($q['wall_tile_area_raw'])->toBe(round(8.8 * 1.2, 2))
+        ->and($q['silicone'])->toBe(round(2 * 1.2 + 8.8 * 2, 2))
+        // Maler übernimmt ab 1,2 m: 8,8 × (2,5 − 1,2) + Decke 4,8
+        ->and($q['painting_area'])->toBe(round(8.8 * 1.3 + 4.8, 2));
+});
+
+test('ohne eigene fliesenhöhe gilt weiter die vorgabe der kalkulation', function () {
+    $room = roomFixture();
+    $room->material = 'wall_tiles';
+    $room->length = '2.4';
+    $room->width = '2.0';
+    $room->tile_height = null;
+
+    $q = (new RoomCalculator)->quantities($room, calcFixture());
+
+    expect($q['wall_tile_area_raw'])->toBe(18.48) // 8,8 × 2,1
+        ->and($q['painting_area'])->toBe(round(8.8 * 0.4 + 4.8, 2));
+});
+
 test('l-form: ausschnitt mindert die fläche, nicht den umfang', function () {
     $room = roomFixture();
     $room->shape = 'l_shape';

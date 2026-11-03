@@ -41,6 +41,31 @@ test('kalkulation anlegen, raum erfassen, summe entsteht', function () {
             ->where('totals.cost', 1880));
 });
 
+test('fliesenhöhe je raum wird gespeichert und fließt in die malerfläche', function () {
+    actingMember();
+
+    $this->post('/calculations', ['name' => 'Bad Huber'])->assertRedirect();
+    $calculation = Calculation::query()->firstOrFail();
+
+    $this->post("/calculations/{$calculation->id}/rooms", [
+        'name' => 'Bad',
+        'shape' => 'rectangle',
+        'material' => 'wall_tiles',
+        'length' => 2.4,
+        'width' => 2.0,
+        'height' => 2.5,
+        'tile_height' => 1.2,
+    ])->assertSessionHasNoErrors();
+
+    // Umfang 8,8: Fliesenband 8,8 × 1,2 = 10,56; Maler 8,8 × 1,3 + 4,8
+    $this->get("/calculations/{$calculation->id}")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('rooms.0.tile_height', '1.20')
+            ->where('rooms.0.quantities.wall_tile_area_raw', 10.56)
+            ->where('rooms.0.quantities.painting_area', 16.24));
+});
+
 test('l-form verlangt die ausschnitt-maße', function () {
     [, $company] = actingMember();
     $calculation = Calculation::factory()->create(['company_id' => $company->id]);

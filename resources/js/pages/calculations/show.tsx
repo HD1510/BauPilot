@@ -60,6 +60,7 @@ type Room = {
     length: string | null;
     width: string | null;
     height: string;
+    tile_height: string | null;
     length2: string | null;
     width2: string | null;
     depth: string | null;
@@ -173,6 +174,7 @@ export default function CalculationsShow({
                     room={editRoom}
                     shapes={shapes}
                     materials={materials}
+                    defaultTileHeight={calculation.wall_tile_height}
                     onDone={() => setEditRoom(null)}
                 />
 
@@ -369,7 +371,11 @@ function RoomRow({
     const parts = [
         `${q.area.toLocaleString('de-AT')} m² Boden`,
         q.wall_tile_area > 0
-            ? `${q.wall_tile_area.toLocaleString('de-AT')} m² Wandfliesen`
+            ? `${q.wall_tile_area.toLocaleString('de-AT')} m² Wandfliesen${
+                  room.tile_height
+                      ? ` (bis ${Number(room.tile_height).toLocaleString('de-AT')} m)`
+                      : ''
+              }`
             : null,
         q.silicone > 0
             ? `${q.silicone.toLocaleString('de-AT')} lfm Silikon`
@@ -434,12 +440,14 @@ function RoomForm({
     room,
     shapes,
     materials,
+    defaultTileHeight,
     onDone,
 }: {
     calculationId: number;
     room: Room | null;
     shapes: OptionValue[];
     materials: OptionValue[];
+    defaultTileHeight: string;
     onDone: () => void;
 }) {
     const { data, setData, post, patch, processing, errors, reset } = useForm({
@@ -449,6 +457,7 @@ function RoomForm({
         length: room?.length ?? '',
         width: room?.width ?? '',
         height: room?.height ?? '2.5',
+        tile_height: room?.tile_height ?? '',
         length2: room?.length2 ?? '',
         width2: room?.width2 ?? '',
         depth: room?.depth ?? '',
@@ -649,6 +658,16 @@ function RoomForm({
                         error={errors.door_width}
                         hint="entfällt bei Sockel und Fugen"
                     />
+                    {isWallTiles && (
+                        <NumberField
+                            id="room-tile-height"
+                            label="Fliesenhöhe (m)"
+                            value={data.tile_height}
+                            onChange={(v) => setData('tile_height', v)}
+                            error={errors.tile_height}
+                            hint={`leer = ${defaultTileHeight} m aus den Einstellungen — der Maler übernimmt darüber`}
+                        />
+                    )}
                     {isWallTiles && (
                         <NumberField
                             id="room-edges"

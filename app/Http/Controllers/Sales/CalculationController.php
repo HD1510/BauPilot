@@ -98,6 +98,7 @@ class CalculationController extends Controller
                 'length' => $room->length,
                 'width' => $room->width,
                 'height' => $room->height,
+                'tile_height' => $room->tile_height,
                 'length2' => $room->length2,
                 'width2' => $room->width2,
                 'depth' => $room->depth,

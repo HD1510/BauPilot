@@ -42,7 +42,9 @@ class RoomCalculator
         [$area, $perimeter] = $this->base($room);
 
         $wasteFactor = 1 + (float) $calculation->waste_percent / 100;
-        $tileHeight = (float) $calculation->wall_tile_height;
+        // Fliesenhöhe: der Raum darf die Kalkulations-Vorgabe
+        // übersteuern — Malerfläche und Silikon rechnen damit mit.
+        $tileHeight = (float) ($room->tile_height ?? $calculation->wall_tile_height);
         $height = (float) $room->height;
         $doorWidth = min((float) $room->door_width, $perimeter);
 
