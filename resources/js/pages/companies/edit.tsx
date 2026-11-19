@@ -1,5 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import { CompanyForm } from '@/components/company-form';
 import type { CompanyFormValues } from '@/components/company-form';
 import Heading from '@/components/heading';
@@ -41,7 +42,7 @@ export default function CompaniesEdit({ company, members, roles }: Props) {
             <Head title={`Firma: ${company.name}`} />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={company.name}
                         description="Stammdaten, Benutzer und Rollen dieser Firma"
@@ -138,9 +139,9 @@ export default function CompaniesEdit({ company, members, roles }: Props) {
                                 size="icon"
                                 aria-label={`${member.name} entfernen`}
                                 onClick={() =>
-                                    router.delete(
+                                    confirmDelete(
                                         `/companies/${company.id}/members/${member.id}`,
-                                        { preserveScroll: true },
+                                        `${member.name} wirklich aus der Firma entfernen?`,
                                     )
                                 }
                             >

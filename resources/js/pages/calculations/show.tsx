@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { confirmDelete } from '@/lib/confirm-delete';
 import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -111,7 +112,7 @@ export default function CalculationsShow({
         <>
             <Head title={`Baukalkulation: ${calculation.name}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={calculation.name}
                         description="Räume erfassen — Mengen und Kosten rechnet BauPilot laufend mit"
@@ -423,9 +424,9 @@ function RoomRow({
                 size="icon"
                 aria-label={`${room.name} löschen`}
                 onClick={() =>
-                    router.delete(
+                    confirmDelete(
                         `/calculations/${calculationId}/rooms/${room.id}`,
-                        { preserveScroll: true },
+                        `Raum „${room.name}“ wirklich löschen?`,
                     )
                 }
             >

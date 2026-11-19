@@ -1,5 +1,6 @@
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -51,8 +52,14 @@ export function OvertimeSection({
             />
 
             <div className="flex flex-wrap gap-3">
-                <Stat label="Aufgebaut" value={formatHours(overtime.balance.accrued)} />
-                <Stat label="Ausgezahlt" value={formatHours(overtime.balance.paid_out)} />
+                <Stat
+                    label="Aufgebaut"
+                    value={formatHours(overtime.balance.accrued)}
+                />
+                <Stat
+                    label="Ausgezahlt"
+                    value={formatHours(overtime.balance.paid_out)}
+                />
                 <Stat
                     label="Saldo"
                     value={formatHours(overtime.balance.balance)}
@@ -69,17 +76,21 @@ export function OvertimeSection({
                         <Badge variant="outline">
                             {String(entry.month).padStart(2, '0')}/{entry.year}
                         </Badge>
-                        <span className="font-medium">{formatHours(entry.hours)}</span>
-                        <span className="flex-1 text-muted-foreground">{entry.note}</span>
+                        <span className="font-medium">
+                            {formatHours(entry.hours)}
+                        </span>
+                        <span className="flex-1 text-muted-foreground">
+                            {entry.note}
+                        </span>
                         {canWrite && (
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 aria-label={`Eintrag ${entry.month}/${entry.year} löschen`}
                                 onClick={() =>
-                                    router.delete(
+                                    confirmDelete(
                                         `/employees/${employeeId}/overtime-entries/${entry.id}`,
-                                        { preserveScroll: true },
+                                        `Überstunden-Eintrag ${entry.month}/${entry.year} wirklich löschen?`,
                                     )
                                 }
                             >
@@ -107,8 +118,12 @@ export function OvertimeSection({
                         key={payout.id}
                         className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 text-sm dark:border-sidebar-border"
                     >
-                        <Badge variant="outline">{formatDate(payout.paid_on)}</Badge>
-                        <span className="font-medium">{formatHours(payout.hours)}</span>
+                        <Badge variant="outline">
+                            {formatDate(payout.paid_on)}
+                        </Badge>
+                        <span className="font-medium">
+                            {formatHours(payout.hours)}
+                        </span>
                         <span className="flex-1 text-muted-foreground">
                             {formatEUR(payout.amount)}
                         </span>
@@ -118,9 +133,9 @@ export function OvertimeSection({
                                 size="icon"
                                 aria-label="Auszahlung löschen"
                                 onClick={() =>
-                                    router.delete(
+                                    confirmDelete(
                                         `/employees/${employeeId}/overtime-payouts/${payout.id}`,
-                                        { preserveScroll: true },
+                                        'Auszahlung wirklich löschen?',
                                     )
                                 }
                             >
@@ -225,9 +240,7 @@ function AddEntryForm({ employeeId }: { employeeId: number }) {
             <Button type="submit" disabled={processing}>
                 Speichern
             </Button>
-            <InputError
-                message={errors.hours ?? errors.month ?? errors.year}
-            />
+            <InputError message={errors.hours ?? errors.month ?? errors.year} />
         </form>
     );
 }
@@ -287,7 +300,9 @@ function AddPayoutForm({ employeeId }: { employeeId: number }) {
             <Button type="submit" disabled={processing}>
                 Auszahlen
             </Button>
-            <InputError message={errors.hours ?? errors.amount ?? errors.paid_on} />
+            <InputError
+                message={errors.hours ?? errors.amount ?? errors.paid_on}
+            />
         </form>
     );
 }

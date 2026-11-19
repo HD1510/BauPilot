@@ -35,7 +35,7 @@ export default function ProjectsIndex({
         <>
             <Head title="Projekte" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Projekte"
                         description="Die Drehscheibe: Termine, Nachträge, Belege und Zahlen je Bauvorhaben"
@@ -93,7 +93,8 @@ export default function ProjectsIndex({
                             </div>
                             {project.planned_finish_on && (
                                 <div className="text-sm text-muted-foreground">
-                                    Ende: {formatDate(project.planned_finish_on)}
+                                    Ende:{' '}
+                                    {formatDate(project.planned_finish_on)}
                                 </div>
                             )}
                         </Link>

@@ -45,7 +45,7 @@ export default function IncomingInvoicesIndex({
         <>
             <Head title="Eingangsrechnungen" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Eingangsrechnungen"
                         description="Lieferanten- und Subunternehmerrechnungen mit Skonto und Prüfvermerk"
@@ -72,7 +72,9 @@ export default function IncomingInvoicesIndex({
                         <Checkbox
                             checked={filters.unchecked}
                             onCheckedChange={(checked) =>
-                                applyFilter({ unchecked: checked ? 1 : undefined })
+                                applyFilter({
+                                    unchecked: checked ? 1 : undefined,
+                                })
                             }
                         />
                         Nur ungeprüfte
@@ -87,21 +89,36 @@ export default function IncomingInvoicesIndex({
                             className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
                         >
                             <span className="min-w-40 flex-1">
-                                <span className="font-medium">{invoice.supplier}</span>
+                                <span className="font-medium">
+                                    {invoice.supplier}
+                                </span>
                                 <span className="text-muted-foreground">
-                                    {invoice.supplier_invoice_no && ` · ${invoice.supplier_invoice_no}`}
+                                    {invoice.supplier_invoice_no &&
+                                        ` · ${invoice.supplier_invoice_no}`}
                                     {invoice.project && ` · ${invoice.project}`}
                                 </span>
                             </span>
-                            {invoice.reverse_charge && <Badge variant="outline">§19</Badge>}
-                            <span className="text-muted-foreground">{invoice.cost_type}</span>
+                            {invoice.reverse_charge && (
+                                <Badge variant="outline">§19</Badge>
+                            )}
                             <span className="text-muted-foreground">
-                                {invoice.payment_due_on && `zahlbar bis ${formatDate(invoice.payment_due_on)}`}
-                                {invoice.skonto_until && ` · Skonto bis ${formatDate(invoice.skonto_until)}`}
+                                {invoice.cost_type}
                             </span>
-                            <span className="w-28 text-right font-medium">{formatEUR(invoice.gross)}</span>
-                            <Badge variant="secondary">{invoice.payment_status_label}</Badge>
-                            {!invoice.checked && <Badge variant="outline">ungeprüft</Badge>}
+                            <span className="text-muted-foreground">
+                                {invoice.payment_due_on &&
+                                    `zahlbar bis ${formatDate(invoice.payment_due_on)}`}
+                                {invoice.skonto_until &&
+                                    ` · Skonto bis ${formatDate(invoice.skonto_until)}`}
+                            </span>
+                            <span className="w-28 text-right font-medium">
+                                {formatEUR(invoice.gross)}
+                            </span>
+                            <Badge variant="secondary">
+                                {invoice.payment_status_label}
+                            </Badge>
+                            {!invoice.checked && (
+                                <Badge variant="outline">ungeprüft</Badge>
+                            )}
                         </Link>
                     ))}
                     {invoices.length === 0 && (

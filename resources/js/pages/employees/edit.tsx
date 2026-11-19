@@ -6,6 +6,7 @@ import {
     Trash2,
     UserPlus,
 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import { DocumentsSection } from '@/components/documents-section';
 import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
@@ -73,7 +74,7 @@ export default function EmployeesEdit({
         <>
             <Head title={`Mitarbeiter: ${employee.name}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={employee.name}
                         description="Mitarbeiterstammblatt"
@@ -434,12 +435,12 @@ function VacationsSection({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7"
+                        className="size-8"
                         aria-label="Urlaub entfernen"
                         onClick={() =>
-                            router.delete(
+                            confirmDelete(
                                 `/employees/${employeeId}/vacations/${vacation.id}`,
-                                { preserveScroll: true },
+                                'Urlaub wirklich entfernen?',
                             )
                         }
                     >

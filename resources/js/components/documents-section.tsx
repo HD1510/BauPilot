@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Camera, FileText, FolderDown, Trash2, Upload } from 'lucide-react';
 import { useRef } from 'react';
 import { toast } from 'sonner';
+import { confirmDelete } from '@/lib/confirm-delete';
 import { assignToInput, FileDropZone } from '@/components/file-drop-zone';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -133,9 +134,9 @@ export function DocumentsSection({
                                     aria-label={`${photo.original_name} löschen`}
                                     className="absolute top-1 right-1 hidden rounded-md bg-black/60 p-1 text-white group-hover:block"
                                     onClick={() =>
-                                        router.delete(
+                                        confirmDelete(
                                             `/documents/${photo.id}`,
-                                            { preserveScroll: true },
+                                            `„${photo.original_name}“ wirklich löschen?`,
                                         )
                                     }
                                 >
@@ -179,9 +180,10 @@ export function DocumentsSection({
                             size="icon"
                             aria-label={`${document.original_name} löschen`}
                             onClick={() =>
-                                router.delete(`/documents/${document.id}`, {
-                                    preserveScroll: true,
-                                })
+                                confirmDelete(
+                                    `/documents/${document.id}`,
+                                    `„${document.original_name}“ wirklich löschen?`,
+                                )
                             }
                         >
                             <Trash2 className="size-4" />

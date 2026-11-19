@@ -49,7 +49,7 @@ export default function IncomingInvoicesEdit({
                 title={`Eingangsrechnung ${invoice.supplier_invoice_no ?? invoice.id}`}
             />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={`Eingangsrechnung ${invoice.supplier_invoice_no ?? `#${invoice.id}`}`}
                         description={`Brutto ${formatEUR(invoice.gross)}${invoice.paid_on ? ` · bezahlt am ${formatDate(invoice.paid_on)} (${formatEUR(invoice.paid_amount)})` : ''}`}

@@ -4,8 +4,8 @@ import { CompanyBadge } from '@/components/company-badge';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { companyRoleLabels  } from '@/types';
-import type {CompanyRole} from '@/types';
+import { companyRoleLabels } from '@/types';
+import type { CompanyRole } from '@/types';
 
 type CompanyListItem = {
     id: number;
@@ -27,7 +27,7 @@ export default function CompaniesIndex({
             <Head title="Firmen" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Firmen"
                         description="Mandanten, in denen Sie arbeiten"
@@ -66,7 +66,9 @@ export default function CompaniesIndex({
                             </div>
                             {company.role === 'admin' && (
                                 <Button variant="outline" asChild>
-                                    <Link href={`/companies/${company.id}/edit`}>
+                                    <Link
+                                        href={`/companies/${company.id}/edit`}
+                                    >
                                         Bearbeiten
                                     </Link>
                                 </Button>

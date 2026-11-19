@@ -8,7 +8,8 @@ import {
     Printer,
     Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +110,43 @@ export default function AssignmentsIndex({
     const [editing, setEditing] = useState<AssignmentRow | null>(null);
     const [formDate, setFormDate] = useState<string>(week.today);
     const [dropDay, setDropDay] = useState<string | null>(null);
+    const [showWeekend, setShowWeekend] = useState(false);
+    const [formFocus, setFormFocus] = useState(0);
+    const formRef = useRef<HTMLDivElement>(null);
+
+    // Das Formular steht unter dem Wochenraster — nach Plus oder Stift
+    // dorthin springen, sonst passiert scheinbar nichts.
+    const openForm = (assignment: AssignmentRow | null, day: string) => {
+        setEditing(assignment);
+        setFormDate(day);
+        setFormFocus((tick) => tick + 1);
+    };
+
+    useEffect(() => {
+        if (formFocus === 0) {
+            return;
+        }
+
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document
+            .getElementById('assignment-site')
+            ?.focus({ preventScroll: true });
+    }, [formFocus]);
+
+    // Samstag und Sonntag nur zeigen, wenn dort etwas steht (oder auf
+    // Wunsch) — die Werktage bekommen dafür die ganze Breite.
+    const visibleDays = days.filter(
+        (day, index) =>
+            index < 5 ||
+            showWeekend ||
+            day === week.today ||
+            assignments.some((assignment) => assignment.work_date === day),
+    );
+    const weekendHidden = visibleDays.length < days.length;
+    const gridColumns =
+        { 5: 'xl:grid-cols-5', 6: 'xl:grid-cols-6', 7: 'xl:grid-cols-7' }[
+            visibleDays.length
+        ] ?? 'xl:grid-cols-7';
 
     const moveAssignment = (id: number, day: string, position?: number) => {
         router.patch(
@@ -127,7 +165,17 @@ export default function AssignmentsIndex({
                         title="Einteilung"
                         description="Wer ist an welchem Tag auf welcher Baustelle — samt Fahrzeug"
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {(weekendHidden || showWeekend) && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowWeekend(!showWeekend)}
+                            >
+                                {showWeekend
+                                    ? 'Wochenende ausblenden'
+                                    : 'Wochenende einblenden'}
+                            </Button>
+                        )}
                         <Button variant="outline" asChild>
                             <a
                                 href={`/assignments/print?date=${week.monday}`}
@@ -181,8 +229,8 @@ export default function AssignmentsIndex({
                     </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
-                    {days.map((day) => {
+                <div className={`grid gap-3 md:grid-cols-2 ${gridColumns}`}>
+                    {visibleDays.map((day) => {
                         const dayAssignments = assignments.filter(
                             (assignment) => assignment.work_date === day,
                         );
@@ -250,12 +298,9 @@ export default function AssignmentsIndex({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="size-6"
+                                            className="size-8 xl:size-6"
                                             aria-label={`Einteilung für ${dayLabel(day)} anlegen`}
-                                            onClick={() => {
-                                                setEditing(null);
-                                                setFormDate(day);
-                                            }}
+                                            onClick={() => openForm(null, day)}
                                         >
                                             <Plus className="size-4" />
                                         </Button>
@@ -314,30 +359,26 @@ export default function AssignmentsIndex({
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="size-6"
+                                                        className="size-8 xl:size-6"
                                                         aria-label={`${assignment.label} bearbeiten`}
-                                                        onClick={() => {
-                                                            setEditing(
+                                                        onClick={() =>
+                                                            openForm(
                                                                 assignment,
-                                                            );
-                                                            setFormDate(
                                                                 assignment.work_date,
-                                                            );
-                                                        }}
+                                                            )
+                                                        }
                                                     >
                                                         <Pencil className="size-3.5" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="size-6"
+                                                        className="size-8 xl:size-6"
                                                         aria-label={`${assignment.label} entfernen`}
                                                         onClick={() =>
-                                                            router.delete(
+                                                            confirmDelete(
                                                                 `/assignments/${assignment.id}`,
-                                                                {
-                                                                    preserveScroll: true,
-                                                                },
+                                                                `Einteilung „${assignment.label}“ wirklich entfernen?`,
                                                             )
                                                         }
                                                     >
@@ -416,6 +457,7 @@ export default function AssignmentsIndex({
                 {canWrite && (
                     <>
                         <Separator />
+                        <div ref={formRef} className="scroll-mt-4" />
                         <AssignmentForm
                             key={editing?.id ?? `new-${formDate}`}
                             assignment={editing}

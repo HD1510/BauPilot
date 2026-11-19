@@ -42,7 +42,7 @@ export default function OffersIndex({
         <>
             <Head title="Angebote" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Angebote"
                         description="Anfragen und Angebote an Kunden mit Statuslauf"

@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { VehicleForm } from '@/components/master-data/vehicle-form';
@@ -23,7 +24,7 @@ export default function VehiclesEdit({ vehicle, dates, canWrite }: Props) {
         <>
             <Head title={`Fahrzeug: ${vehicle.plate}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={vehicle.plate}
                         description="Fahrzeugstammblatt mit Terminen"
@@ -113,9 +114,9 @@ export default function VehiclesEdit({ vehicle, dates, canWrite }: Props) {
                                     size="icon"
                                     aria-label={`${date.label} entfernen`}
                                     onClick={() =>
-                                        router.delete(
+                                        confirmDelete(
                                             `/vehicles/${vehicle.id}/dates/${date.id}`,
-                                            { preserveScroll: true },
+                                            `Termin „${date.label}“ wirklich entfernen?`,
                                         )
                                     }
                                 >

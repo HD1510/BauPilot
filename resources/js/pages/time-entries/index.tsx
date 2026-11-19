@@ -1,6 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,11 @@ type Props = {
  * Zeiterfassung (M8): mobile Schnellerfassung — Datum steht auf heute,
  * der eigene Mitarbeiter ist vorausgewählt; Projekt, Stunden, fertig.
  */
-export default function TimeEntriesIndex({ entries, projects, employees }: Props) {
+export default function TimeEntriesIndex({
+    entries,
+    projects,
+    employees,
+}: Props) {
     const me = employees.find((employee) => employee.is_me);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -82,7 +87,9 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                                 id="time-date"
                                 type="date"
                                 value={data.work_date}
-                                onChange={(e) => setData('work_date', e.target.value)}
+                                onChange={(e) =>
+                                    setData('work_date', e.target.value)
+                                }
                                 required
                             />
                         </div>
@@ -90,14 +97,19 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                             <Label>Mitarbeiter</Label>
                             <Select
                                 value={data.employee_id}
-                                onValueChange={(value) => setData('employee_id', value)}
+                                onValueChange={(value) =>
+                                    setData('employee_id', value)
+                                }
                             >
                                 <SelectTrigger aria-label="Mitarbeiter">
                                     <SelectValue placeholder="Wählen" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {employees.map((employee) => (
-                                        <SelectItem key={employee.id} value={String(employee.id)}>
+                                        <SelectItem
+                                            key={employee.id}
+                                            value={String(employee.id)}
+                                        >
                                             {employee.name}
                                             {employee.is_me ? ' (ich)' : ''}
                                         </SelectItem>
@@ -109,14 +121,19 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                             <Label>Projekt</Label>
                             <Select
                                 value={data.project_id}
-                                onValueChange={(value) => setData('project_id', value)}
+                                onValueChange={(value) =>
+                                    setData('project_id', value)
+                                }
                             >
                                 <SelectTrigger aria-label="Projekt">
                                     <SelectValue placeholder="Wählen" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {projects.map((project) => (
-                                        <SelectItem key={project.id} value={String(project.id)}>
+                                        <SelectItem
+                                            key={project.id}
+                                            value={String(project.id)}
+                                        >
                                             {project.title}
                                         </SelectItem>
                                     ))}
@@ -134,22 +151,33 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                                 min={0.25}
                                 max={24}
                                 value={data.hours}
-                                onChange={(e) => setData('hours', e.target.value)}
+                                onChange={(e) =>
+                                    setData('hours', e.target.value)
+                                }
                                 required
                             />
                         </div>
                         <div className="grid flex-1 gap-1">
-                            <Label htmlFor="time-activity">Tätigkeit (optional)</Label>
+                            <Label htmlFor="time-activity">
+                                Tätigkeit (optional)
+                            </Label>
                             <Input
                                 id="time-activity"
                                 value={data.activity}
-                                onChange={(e) => setData('activity', e.target.value)}
+                                onChange={(e) =>
+                                    setData('activity', e.target.value)
+                                }
                                 placeholder="z. B. Verputzarbeiten EG"
                             />
                         </div>
                         <Button
                             type="submit"
-                            disabled={processing || !data.project_id || !data.employee_id || !data.hours}
+                            disabled={
+                                processing ||
+                                !data.project_id ||
+                                !data.employee_id ||
+                                !data.hours
+                            }
                         >
                             Erfassen
                         </Button>
@@ -164,14 +192,20 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                     />
                 </form>
 
-                <Heading variant="small" title="Letzte Einträge" description="" />
+                <Heading
+                    variant="small"
+                    title="Letzte Einträge"
+                    description=""
+                />
                 <div className="grid max-w-3xl gap-2">
                     {entries.map((entry) => (
                         <div
                             key={entry.id}
                             className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 text-sm dark:border-sidebar-border"
                         >
-                            <Badge variant="outline">{formatDate(entry.work_date)}</Badge>
+                            <Badge variant="outline">
+                                {formatDate(entry.work_date)}
+                            </Badge>
                             <span className="font-medium">
                                 {entry.hours.toLocaleString('de-AT')} h
                             </span>
@@ -189,9 +223,10 @@ export default function TimeEntriesIndex({ entries, projects, employees }: Props
                                     size="icon"
                                     aria-label="Eintrag löschen"
                                     onClick={() =>
-                                        router.delete(`/time-entries/${entry.id}`, {
-                                            preserveScroll: true,
-                                        })
+                                        confirmDelete(
+                                            `/time-entries/${entry.id}`,
+                                            'Zeiteintrag wirklich löschen?',
+                                        )
                                     }
                                 >
                                     <Trash2 className="size-4" />

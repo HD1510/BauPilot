@@ -53,29 +53,40 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
         <>
             <Head title={`Import: ${run.source_filename}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={run.source_filename}
                         description="Prüfbericht des Dry-Runs — übernommen wird erst nach Ihren Entscheidungen"
                     />
-                    <Badge variant={run.status === 'committed' ? 'secondary' : 'outline'}>
+                    <Badge
+                        variant={
+                            run.status === 'committed' ? 'secondary' : 'outline'
+                        }
+                    >
                         {run.status === 'committed' ? 'Übernommen' : 'Dry-Run'}
                     </Badge>
                 </div>
 
                 <div className="grid max-w-3xl gap-3 md:grid-cols-2">
                     {run.stats.outgoing && (
-                        <StatsCard title="Ausgangsrechnungen" stats={run.stats.outgoing} showOpen />
+                        <StatsCard
+                            title="Ausgangsrechnungen"
+                            stats={run.stats.outgoing}
+                            showOpen
+                        />
                     )}
                     {run.stats.incoming && (
-                        <StatsCard title="Eingangsrechnungen" stats={run.stats.incoming} />
+                        <StatsCard
+                            title="Eingangsrechnungen"
+                            stats={run.stats.incoming}
+                        />
                     )}
                 </div>
 
                 <p className="max-w-3xl text-sm text-muted-foreground">
-                    Soll/Ist-Abgleich: Diese Summen mit den bekannten Kontrollwerten der
-                    Excel vergleichen (z. B. offene Rechnungen und Brutto-Summe), bevor
-                    übernommen wird.
+                    Soll/Ist-Abgleich: Diese Summen mit den bekannten
+                    Kontrollwerten der Excel vergleichen (z. B. offene
+                    Rechnungen und Brutto-Summe), bevor übernommen wird.
                 </p>
 
                 <Separator />
@@ -92,10 +103,18 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                             key={finding.id}
                             className="flex flex-wrap items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 text-sm dark:border-sidebar-border"
                         >
-                            <Badge variant={finding.type === 'duplicate' ? 'destructive' : 'outline'}>
+                            <Badge
+                                variant={
+                                    finding.type === 'duplicate'
+                                        ? 'destructive'
+                                        : 'outline'
+                                }
+                            >
                                 {typeLabels[finding.type] ?? finding.type}
                             </Badge>
-                            <span className="min-w-64 flex-1">{finding.message}</span>
+                            <span className="min-w-64 flex-1">
+                                {finding.message}
+                            </span>
                             {finding.type === 'duplicate' &&
                                 (finding.decision ? (
                                     <Badge variant="secondary">
@@ -111,7 +130,10 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                                             onClick={() =>
                                                 router.patch(
                                                     `/imports/${run.id}/findings/${finding.id}`,
-                                                    { decision: 'use_existing' },
+                                                    {
+                                                        decision:
+                                                            'use_existing',
+                                                    },
                                                     { preserveScroll: true },
                                                 )
                                             }
@@ -149,7 +171,11 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                             <Button
                                 disabled={undecided > 0}
                                 onClick={() =>
-                                    router.post(`/imports/${run.id}/commit`, {}, { preserveScroll: true })
+                                    router.post(
+                                        `/imports/${run.id}/commit`,
+                                        {},
+                                        { preserveScroll: true },
+                                    )
                                 }
                             >
                                 <CheckCircle2 className="size-4" />
@@ -204,12 +230,15 @@ function StatsCard({
                     <>
                         <dt>Offen</dt>
                         <dd className="text-right">
-                            {stats.open_count} / {formatEUR(stats.open_gross ?? 0)}
+                            {stats.open_count} /{' '}
+                            {formatEUR(stats.open_gross ?? 0)}
                         </dd>
                     </>
                 )}
                 <dt>§19 netto</dt>
-                <dd className="text-right">{formatEUR(stats.paragraph19_net)}</dd>
+                <dd className="text-right">
+                    {formatEUR(stats.paragraph19_net)}
+                </dd>
             </dl>
         </div>
     );

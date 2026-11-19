@@ -1,5 +1,6 @@
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -51,9 +52,10 @@ export function NotesSection({
                             size="icon"
                             aria-label="Notiz löschen"
                             onClick={() =>
-                                router.delete(`/notes/${note.id}`, {
-                                    preserveScroll: true,
-                                })
+                                confirmDelete(
+                                    `/notes/${note.id}`,
+                                    'Notiz wirklich löschen?',
+                                )
                             }
                         >
                             <Trash2 className="size-4" />

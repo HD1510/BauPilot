@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { CustomerForm } from '@/components/master-data/customer-form';
@@ -28,7 +29,7 @@ export default function CustomersEdit({ customer, contacts, canWrite }: Props) {
         <>
             <Head title={`Kunde: ${customer.name}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={customer.name}
                         description="Kundenstammblatt mit Ansprechpartnern"
@@ -125,9 +126,9 @@ export default function CustomersEdit({ customer, contacts, canWrite }: Props) {
                                     size="icon"
                                     aria-label={`${contact.name} entfernen`}
                                     onClick={() =>
-                                        router.delete(
+                                        confirmDelete(
                                             `/customers/${customer.id}/contacts/${contact.id}`,
-                                            { preserveScroll: true },
+                                            `Kontakt „${contact.name}“ wirklich entfernen?`,
                                         )
                                     }
                                 >

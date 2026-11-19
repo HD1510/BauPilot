@@ -33,12 +33,20 @@ type EntryRow = { employee_id: string; hours: string };
  * /api/site-reports; ohne Netz wandert er sichtbar in die Warteschlange
  * und synchronisiert bei Verbindung nach.
  */
-export default function SiteReportsCreate({ projects, employees, companyId }: Props) {
+export default function SiteReportsCreate({
+    projects,
+    employees,
+    companyId,
+}: Props) {
     const [projectId, setProjectId] = useState('');
-    const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
+    const [reportDate, setReportDate] = useState(
+        new Date().toISOString().slice(0, 10),
+    );
     const [bodyText, setBodyText] = useState('');
     const [materialText, setMaterialText] = useState('');
-    const [entries, setEntries] = useState<EntryRow[]>([{ employee_id: '', hours: '' }]);
+    const [entries, setEntries] = useState<EntryRow[]>([
+        { employee_id: '', hours: '' },
+    ]);
     const [signature, setSignature] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [pending, setPending] = useState(0);
@@ -75,7 +83,9 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
         if (result.queued) {
             // Offline: auf der Seite bleiben (Navigation bräuchte Netz),
             // Formular leeren — der Zähler oben zeigt die Warteschlange.
-            toast.info('Kein Netz — der Bericht wartet in der Warteschlange und synchronisiert automatisch nach.');
+            toast.info(
+                'Kein Netz — der Bericht wartet in der Warteschlange und synchronisiert automatisch nach.',
+            );
             setBodyText('');
             setMaterialText('');
             setEntries([{ employee_id: '', hours: '' }]);
@@ -86,7 +96,9 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
 
         if (result.ok) {
             const body = result.body as { id: number; number: number } | null;
-            toast.success(`Regiebericht Nr. ${body?.number ?? '?'} gespeichert.`);
+            toast.success(
+                `Regiebericht Nr. ${body?.number ?? '?'} gespeichert.`,
+            );
             router.visit(body ? `/site-reports/${body.id}` : '/site-reports');
 
             return;
@@ -102,7 +114,7 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
         <>
             <Head title="Regiebericht erfassen" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Regiebericht erfassen"
                         description="Funktioniert auch ohne Netz — der Bericht synchronisiert nach"
@@ -119,13 +131,19 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                     <div className="flex flex-wrap items-end gap-3">
                         <div className="grid min-w-52 flex-1 gap-1">
                             <Label>Projekt</Label>
-                            <Select value={projectId} onValueChange={setProjectId}>
+                            <Select
+                                value={projectId}
+                                onValueChange={setProjectId}
+                            >
                                 <SelectTrigger aria-label="Projekt">
                                     <SelectValue placeholder="Wählen" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {projects.map((project) => (
-                                        <SelectItem key={project.id} value={String(project.id)}>
+                                        <SelectItem
+                                            key={project.id}
+                                            value={String(project.id)}
+                                        >
                                             {project.title}
                                         </SelectItem>
                                     ))}
@@ -145,7 +163,9 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                     </div>
 
                     <div className="grid gap-1">
-                        <Label htmlFor="report-body">Ausgeführte Arbeiten</Label>
+                        <Label htmlFor="report-body">
+                            Ausgeführte Arbeiten
+                        </Label>
                         <Textarea
                             id="report-body"
                             rows={4}
@@ -169,20 +189,37 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                     <div className="grid gap-2">
                         <Label>Stunden</Label>
                         {entries.map((entry, index) => (
-                            <div key={index} className="flex items-center gap-2">
+                            <div
+                                key={index}
+                                className="flex items-center gap-2"
+                            >
                                 <Select
                                     value={entry.employee_id}
                                     onValueChange={(value) =>
-                                        setEntries(entries.map((row, i) =>
-                                            i === index ? { ...row, employee_id: value } : row))
+                                        setEntries(
+                                            entries.map((row, i) =>
+                                                i === index
+                                                    ? {
+                                                          ...row,
+                                                          employee_id: value,
+                                                      }
+                                                    : row,
+                                            ),
+                                        )
                                     }
                                 >
-                                    <SelectTrigger className="flex-1" aria-label={`Mitarbeiter Zeile ${index + 1}`}>
+                                    <SelectTrigger
+                                        className="flex-1"
+                                        aria-label={`Mitarbeiter Zeile ${index + 1}`}
+                                    >
                                         <SelectValue placeholder="Mitarbeiter" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {employees.map((employee) => (
-                                            <SelectItem key={employee.id} value={String(employee.id)}>
+                                            <SelectItem
+                                                key={employee.id}
+                                                value={String(employee.id)}
+                                            >
                                                 {employee.name}
                                             </SelectItem>
                                         ))}
@@ -198,8 +235,16 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                                     aria-label={`Stunden Zeile ${index + 1}`}
                                     value={entry.hours}
                                     onChange={(e) =>
-                                        setEntries(entries.map((row, i) =>
-                                            i === index ? { ...row, hours: e.target.value } : row))
+                                        setEntries(
+                                            entries.map((row, i) =>
+                                                i === index
+                                                    ? {
+                                                          ...row,
+                                                          hours: e.target.value,
+                                                      }
+                                                    : row,
+                                            ),
+                                        )
                                     }
                                 />
                                 <Button
@@ -207,7 +252,13 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                                     variant="ghost"
                                     size="icon"
                                     aria-label={`Zeile ${index + 1} entfernen`}
-                                    onClick={() => setEntries(entries.filter((_, i) => i !== index))}
+                                    onClick={() =>
+                                        setEntries(
+                                            entries.filter(
+                                                (_, i) => i !== index,
+                                            ),
+                                        )
+                                    }
                                 >
                                     <Trash2 className="size-4" />
                                 </Button>
@@ -217,7 +268,12 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                             type="button"
                             variant="outline"
                             className="w-fit"
-                            onClick={() => setEntries([...entries, { employee_id: '', hours: '' }])}
+                            onClick={() =>
+                                setEntries([
+                                    ...entries,
+                                    { employee_id: '', hours: '' },
+                                ])
+                            }
                         >
                             <Plus className="size-4" />
                             Zeile
@@ -228,8 +284,9 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                         <Label>Unterschrift (Bauherr / Auftraggeber)</Label>
                         <SignaturePad onChange={setSignature} />
                         <p className="text-xs text-muted-foreground">
-                            Mit Unterschrift wird der Bericht abgeschlossen und gesperrt.
-                            Ohne Unterschrift bleibt er als Entwurf offen.
+                            Mit Unterschrift wird der Bericht abgeschlossen und
+                            gesperrt. Ohne Unterschrift bleibt er als Entwurf
+                            offen.
                         </p>
                     </div>
 
@@ -238,7 +295,9 @@ export default function SiteReportsCreate({ projects, employees, companyId }: Pr
                         disabled={submitting || !projectId || !reportDate}
                         className="w-fit"
                     >
-                        {signature ? 'Unterschreiben & absenden' : 'Als Entwurf speichern'}
+                        {signature
+                            ? 'Unterschreiben & absenden'
+                            : 'Als Entwurf speichern'}
                     </Button>
                 </div>
             </div>

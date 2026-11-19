@@ -92,7 +92,7 @@ export default function OutgoingInvoicesShow({
         <>
             <Head title={`Rechnung ${invoice.number}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={`${invoice.doc_type_label} ${invoice.number}`}
                         description={[

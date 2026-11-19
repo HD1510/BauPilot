@@ -43,7 +43,10 @@ export function IndexShell({
         const timeout = setTimeout(() => {
             router.get(
                 basePath,
-                { q: q || undefined, archived: filters.archived ? 1 : undefined },
+                {
+                    q: q || undefined,
+                    archived: filters.archived ? 1 : undefined,
+                },
                 { preserveState: true, replace: true },
             );
         }, 300);
@@ -54,7 +57,7 @@ export function IndexShell({
 
     return (
         <div className="flex h-full flex-1 flex-col gap-6 p-4">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <Heading title={title} description={description} />
                 {createLabel && (
                     <Button asChild>

@@ -1,6 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Lock, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { SignaturePad } from '@/components/site-reports/signature-pad';
@@ -34,7 +35,7 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
         <>
             <Head title={`Regiebericht Nr. ${report.number}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={`Regiebericht Nr. ${report.number}`}
                         description={`${report.project ?? ''} · ${formatDate(report.report_date)}`}
@@ -48,7 +49,11 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
                             <Button
                                 variant="outline"
                                 onClick={() =>
-                                    router.delete(`/site-reports/${report.id}`)
+                                    confirmDelete(
+                                        `/site-reports/${report.id}`,
+                                        'Entwurf wirklich löschen?',
+                                        {},
+                                    )
                                 }
                             >
                                 <Trash2 className="size-4" />
@@ -60,7 +65,9 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
 
                 <div className="grid max-w-xl gap-4">
                     <section>
-                        <h3 className="mb-1 text-sm font-medium">Ausgeführte Arbeiten</h3>
+                        <h3 className="mb-1 text-sm font-medium">
+                            Ausgeführte Arbeiten
+                        </h3>
                         <p className="text-sm whitespace-pre-line text-muted-foreground">
                             {report.body_text ?? '—'}
                         </p>
@@ -75,13 +82,20 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
                         <h3 className="mb-1 text-sm font-medium">Stunden</h3>
                         <div className="grid gap-1">
                             {report.entries.map((entry, index) => (
-                                <div key={index} className="flex justify-between text-sm">
+                                <div
+                                    key={index}
+                                    className="flex justify-between text-sm"
+                                >
                                     <span>{entry.employee}</span>
-                                    <span>{entry.hours.toLocaleString('de-AT')} h</span>
+                                    <span>
+                                        {entry.hours.toLocaleString('de-AT')} h
+                                    </span>
                                 </div>
                             ))}
                             {report.entries.length === 0 && (
-                                <p className="text-sm text-muted-foreground">Keine Stunden erfasst.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Keine Stunden erfasst.
+                                </p>
                             )}
                         </div>
                     </section>
@@ -91,7 +105,10 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
                     {signed && (
                         <section>
                             <h3 className="mb-1 text-sm font-medium">
-                                Unterschrieben{report.signed_at ? ` am ${formatDate(report.signed_at)}` : ''}
+                                Unterschrieben
+                                {report.signed_at
+                                    ? ` am ${formatDate(report.signed_at)}`
+                                    : ''}
                             </h3>
                             {report.has_signature && (
                                 <img
@@ -101,7 +118,8 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
                                 />
                             )}
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Der Bericht ist gesperrt und kann nicht mehr geändert werden.
+                                Der Bericht ist gesperrt und kann nicht mehr
+                                geändert werden.
                             </p>
                         </section>
                     )}
@@ -115,7 +133,9 @@ export default function SiteReportsShow({ report, canSign, canDelete }: Props) {
 
 function SignForm({ reportId }: { reportId: number }) {
     const [signature, setSignature] = useState<string | null>(null);
-    const { setData, post, processing, errors } = useForm<{ signature: string }>({
+    const { setData, post, processing, errors } = useForm<{
+        signature: string;
+    }>({
         signature: '',
     });
 
@@ -124,7 +144,9 @@ function SignForm({ reportId }: { reportId: number }) {
             className="grid gap-2"
             onSubmit={(event) => {
                 event.preventDefault();
-                post(`/site-reports/${reportId}/sign`, { preserveScroll: true });
+                post(`/site-reports/${reportId}/sign`, {
+                    preserveScroll: true,
+                });
             }}
         >
             <h3 className="text-sm font-medium">Jetzt unterschreiben</h3>
@@ -135,7 +157,11 @@ function SignForm({ reportId }: { reportId: number }) {
                 }}
             />
             <InputError message={errors.signature} />
-            <Button type="submit" disabled={processing || !signature} className="w-fit">
+            <Button
+                type="submit"
+                disabled={processing || !signature}
+                className="w-fit"
+            >
                 Unterschreiben & sperren
             </Button>
         </form>

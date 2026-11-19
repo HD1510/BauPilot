@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Link2, Pencil, Plus, Trash2, Unlink } from 'lucide-react';
 import { useState } from 'react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import { DocumentsSection } from '@/components/documents-section';
 import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
@@ -142,7 +143,7 @@ export default function ProjectsShow({
         <>
             <Head title={`Projekt: ${project.title}`} />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={project.title}
                         description={[project.customer, project.site_address]
@@ -245,9 +246,9 @@ export default function ProjectsShow({
                                     size="icon"
                                     aria-label={`${appointment.label} entfernen`}
                                     onClick={() =>
-                                        router.delete(
+                                        confirmDelete(
                                             `/projects/${project.id}/appointments/${appointment.id}`,
-                                            { preserveScroll: true },
+                                            `Termin „${appointment.label}“ wirklich entfernen?`,
                                         )
                                     }
                                 >

@@ -1,5 +1,6 @@
 import { router, useForm } from '@inertiajs/react';
 import { CircleCheck, RotateCcw, Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -142,9 +143,10 @@ function TaskRow({ task }: { task: TaskItem }) {
                 size="icon"
                 aria-label={`${task.title} löschen`}
                 onClick={() =>
-                    router.delete(`/tasks/${task.id}`, {
-                        preserveScroll: true,
-                    })
+                    confirmDelete(
+                        `/tasks/${task.id}`,
+                        `„${task.title}“ wirklich löschen?`,
+                    )
                 }
             >
                 <Trash2 className="size-4" />

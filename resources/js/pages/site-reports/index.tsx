@@ -16,7 +16,11 @@ type ReportRow = {
     status_label: string;
 };
 
-export default function SiteReportsIndex({ reports }: { reports: ReportRow[] }) {
+export default function SiteReportsIndex({
+    reports,
+}: {
+    reports: ReportRow[];
+}) {
     const [pending, setPending] = useState(0);
 
     useEffect(() => subscribePending(setPending), []);
@@ -25,7 +29,7 @@ export default function SiteReportsIndex({ reports }: { reports: ReportRow[] }) 
         <>
             <Head title="Regieberichte" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Regieberichte"
                         description="Fortlaufend nummeriert — nach der Unterschrift gesperrt"
@@ -54,10 +58,20 @@ export default function SiteReportsIndex({ reports }: { reports: ReportRow[] }) 
                             href={`/site-reports/${report.id}`}
                             className="flex items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
                         >
-                            <span className="font-medium">Nr. {report.number}</span>
+                            <span className="font-medium">
+                                Nr. {report.number}
+                            </span>
                             <span>{formatDate(report.report_date)}</span>
-                            <span className="flex-1 text-muted-foreground">{report.project}</span>
-                            <Badge variant={report.status === 'signed' ? 'default' : 'secondary'}>
+                            <span className="flex-1 text-muted-foreground">
+                                {report.project}
+                            </span>
+                            <Badge
+                                variant={
+                                    report.status === 'signed'
+                                        ? 'default'
+                                        : 'secondary'
+                                }
+                            >
                                 {report.status_label}
                             </Badge>
                         </Link>
