@@ -54,14 +54,83 @@ automatisch mit jedem Deploy, es ist nichts zu verteilen. Am Handy
 analog über „Zum Startbildschirm hinzufügen“ — darüber kommt später
 auch Web-Push (M6).
 
-## Backup (Erinnerung, außerhalb des Repos)
+## Backup
 
-Nächtlicher `pg_dump`, asymmetrisch verschlüsselt (age/GPG, privater
-Schlüssel offline), Write-only in einen eigenen Backup-Bucket, 30 Tage
-Aufbewahrung, wöchentlicher Server-Snapshot. Der Backup-Job pingt nach
-jedem erfolgreichen Upload einen Healthcheck-Dienst (Dead-Man-Switch).
-Einmal im Monat testweise auf Staging zurückspielen. Details:
-Architekturblatt Abschnitt 10.
+`deploy/backup.sh` sichert jede Nacht die Datenbank und die
+Dokumentenablage (`storage/app/documents`). Beides wird mit **age**
+asymmetrisch verschlüsselt: Am Server liegt nur der öffentliche
+Schlüssel — zurücklesen kann nur, wer den privaten Schlüssel hat. Ein
+Angreifer am Server kommt damit nicht an alte Sicherungen.
+
+### Einmalig einrichten
+
+1. Am **eigenen Rechner** (nicht am Server) ein Schlüsselpaar erzeugen
+   und die Datei sicher verwahren (Passwortmanager, zusätzlich Ausdruck):
+
+   ```sh
+   age-keygen -o baupilot-backup-key.txt
+   ```
+
+   Die Ausgabe zeigt den öffentlichen Schlüssel (`age1…`).
+
+2. Am Server `age` installieren (`apt install age`) und die Datei
+   `~/.baupilot-backup.env` anlegen (Rechte `600`, nicht ins Repository):
+
+   ```sh
+   BACKUP_AGE_RECIPIENT=age1…          # öffentlicher Schlüssel aus Schritt 1
+   BACKUP_RCLONE_REMOTE=               # optional, z. B. hetzner:baupilot-backup
+   BACKUP_HEALTHCHECK_URL=             # optional, z. B. https://hc-ping.com/…
+   ```
+
+3. In Forge unter **Scheduler** einen täglichen Job anlegen:
+
+   ```sh
+   bash /home/forge/baupilot.hd5.at/deploy/backup.sh
+   ```
+
+Die Sicherungen liegen in `~/backups/baupilot` und werden nach 30 Tagen
+gelöscht (`BACKUP_KEEP_DAYS`).
+
+**Auslagern:** Eine Sicherung, die nur am selben Server liegt, hilft
+nicht, wenn der Server weg ist. Mit `BACKUP_RCLONE_REMOTE` kopiert das
+Skript jede Sicherung zusätzlich in einen Bucket (rclone einmalig mit
+`rclone config` einrichten, am besten mit einem Schlüssel, der nur
+schreiben darf).
+
+**Überwachen:** Mit `BACKUP_HEALTHCHECK_URL` meldet sich das Skript nach
+jedem Erfolg bei einem Dienst wie healthchecks.io. Bleibt die Meldung
+aus, kommt ein Alarm — ein still ausgefallenes Backup fällt sonst erst
+auf, wenn man es braucht.
+
+### Zurückspielen
+
+Am Rechner mit dem privaten Schlüssel:
+
+```sh
+# Datenbank
+age --decrypt -i baupilot-backup-key.txt db-2026-11-19_0300.sql.gz.age \
+    | gunzip | psql --host=… --username=… baupilot
+
+# Dokumente
+age --decrypt -i baupilot-backup-key.txt dokumente-2026-11-19_0300.tar.gz.age \
+    | tar --extract --gzip --directory storage/app/documents
+```
+
+Einmal im Monat testweise zurückspielen — ein Backup, das nie
+zurückgelesen wurde, ist nur eine Hoffnung.
+
+## E-Mail-Versand prüfen
+
+Ohne Anbieter steht `MAIL_MAILER=log` — die tägliche Fristen-Mail landet
+dann nur im Log und wird nie zugestellt. Nach dem Eintragen der
+SMTP-Zugangsdaten (Brevo oder Mailjet, siehe `.env.example`) prüfen:
+
+```sh
+php artisan baupilot:mail-test du@deine-firma.at
+```
+
+Der Befehl sagt klar, ob die Nachricht hinausging — und warnt, wenn der
+Versand noch auf `log` steht.
 
 ## Datei-Uploads (Nginx/PHP-Limits)
 
