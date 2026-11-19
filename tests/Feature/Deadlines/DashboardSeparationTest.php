@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\IncomingInvoice;
+use App\Models\OutgoingInvoice;
 use App\Models\Project;
 use App\Models\ProjectAppointment;
 use App\Models\Supplier;
@@ -40,4 +41,28 @@ test('dashboard trennt termine von fristen', function () {
         ->where('deadlines', fn ($deadlines) => collect($deadlines)->every(
             fn ($deadline) => $deadline['kind'] !== 'appointment',
         )));
+});
+
+test('überfällige rechnung steht nur als mahn-hinweis, nicht noch einmal in den fristen', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $overdue = OutgoingInvoice::factory()->create([
+        'company_id' => $company->id,
+        'due_on' => now()->subDays(10)->toDateString(),
+    ]);
+    $upcoming = OutgoingInvoice::factory()->create([
+        'company_id' => $company->id,
+        'due_on' => now()->addDays(10)->toDateString(),
+    ]);
+    app(CompanyContext::class)->clear();
+
+    $this->get('/dashboard')->assertInertia(fn ($page) => $page
+        ->count('overdueInvoices', 1)
+        ->where('overdueInvoices.0.id', $overdue->id)
+        // Die noch nicht fällige Rechnung bleibt in den Fristen, die
+        // überfällige taucht dort nicht ein zweites Mal auf.
+        ->where('deadlines', fn ($deadlines) => collect($deadlines)->pluck('url')->all() === ["/outgoing-invoices/{$upcoming->id}"])
+        // Die Kachel zählt weiterhin alles.
+        ->where('deadlinesTotal', 2)
+        ->where('overdueDeadlines', 1));
 });
