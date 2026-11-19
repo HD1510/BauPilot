@@ -54,6 +54,85 @@ const onVacation = (
             vacation.ends_on >= from,
     );
 
+const shortDay = (iso: string) =>
+    `${Number(iso.slice(8, 10))}.${Number(iso.slice(5, 7))}.`;
+
+const nextDay = (iso: string) => {
+    const date = new Date(`${iso}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + 1);
+
+    return date.toISOString().slice(0, 10);
+};
+
+type VacationInfo = {
+    /** ganz = an jedem Tag des Zeitraums im Urlaub, teils = nur an manchen */
+    kind: 'none' | 'partial' | 'full';
+    /** Urlaubstage im Zeitraum, zusammengefasst: „18.11.–20.11." */
+    when: string;
+    notes: string | null;
+};
+
+/**
+ * Urlaub eines Mitarbeiters im gewählten Zeitraum. Ist er nur an
+ * einzelnen Tagen weg, bleibt er wählbar — eingeteilt wird er dann an
+ * den übrigen Tagen.
+ */
+const vacationInfo = (
+    vacations: VacationRow[],
+    employeeId: number,
+    from: string,
+    until?: string,
+): VacationInfo => {
+    const own = vacations.filter(
+        (vacation) => vacation.employee_id === employeeId,
+    );
+    const last = until && until >= from ? until : from;
+    const away: string[] = [];
+    let total = 0;
+    let notes: string | null = null;
+
+    // Mehr als zwei Monate plant niemand in einem Zug — Schutz vor Tippfehlern.
+    for (let day = from; day <= last && total < 62; day = nextDay(day)) {
+        total++;
+        const hit = own.find(
+            (vacation) => vacation.starts_on <= day && vacation.ends_on >= day,
+        );
+
+        if (hit) {
+            away.push(day);
+            notes = notes ?? hit.notes;
+        }
+    }
+
+    if (away.length === 0) {
+        return { kind: 'none', when: '', notes: null };
+    }
+
+    // Aufeinanderfolgende Tage zu Zeiträumen zusammenfassen.
+    const ranges: string[] = [];
+    let start = away[0];
+    let previous = away[0];
+
+    for (const day of [...away.slice(1), '']) {
+        if (day !== nextDay(previous)) {
+            ranges.push(
+                start === previous
+                    ? shortDay(start)
+                    : `${shortDay(start)}–${shortDay(previous)}`,
+            );
+            start = day;
+        }
+
+        previous = day;
+    }
+
+    return {
+        kind: away.length === total ? 'full' : 'partial',
+        when: ranges.join(', '),
+        notes,
+    };
+};
+
 type AssignmentRow = {
     id: number;
     work_date: string;
@@ -509,6 +588,21 @@ function AssignmentForm({
         work_date_until: current.work_date_until || null,
     }));
 
+    // Gewählte Mitarbeiter, die nur an einzelnen Tagen des Zeitraums
+    // im Urlaub sind — dafür gibt es unter der Liste einen Hinweis.
+    const partlyAway = employees
+        .filter(
+            (employee) =>
+                data.employee_ids.includes(employee.id) &&
+                vacationInfo(
+                    vacations,
+                    employee.id,
+                    data.work_date,
+                    assignment ? undefined : data.work_date_until,
+                ).kind === 'partial',
+        )
+        .map((employee) => employee.name);
+
     const toggle = (key: 'employee_ids' | 'vehicle_ids', id: number) => {
         setData(
             key,
@@ -625,33 +719,22 @@ function AssignmentForm({
                     <Label>Mitarbeiter</Label>
                     <div className="flex flex-wrap gap-x-4 gap-y-2">
                         {employees.map((employee) => {
-                            // Im Urlaub am gewählten Tag (bzw. Zeitraum):
-                            // ausgegraut und nicht wählbar.
-                            const vacationing = onVacation(
+                            // Ganz im Urlaub: ausgegraut und nicht wählbar.
+                            // Nur an einzelnen Tagen des Zeitraums: wählbar
+                            // mit Hinweis — eingeteilt wird an den übrigen.
+                            const vacation = vacationInfo(
                                 vacations,
                                 employee.id,
                                 data.work_date,
                                 assignment ? undefined : data.work_date_until,
                             );
-                            const vacationNote = vacationing
-                                ? vacations.find(
-                                      (vacation) =>
-                                          vacation.employee_id ===
-                                              employee.id &&
-                                          vacation.starts_on <=
-                                              ((assignment
-                                                  ? ''
-                                                  : data.work_date_until) ||
-                                                  data.work_date) &&
-                                          vacation.ends_on >= data.work_date,
-                                  )?.notes
-                                : null;
+                            const away = vacation.kind === 'full';
 
                             return (
                                 <Label
                                     key={employee.id}
                                     className={`flex items-center gap-2 text-sm font-normal ${
-                                        vacationing
+                                        away
                                             ? 'text-muted-foreground opacity-60'
                                             : ''
                                     }`}
@@ -661,7 +744,7 @@ function AssignmentForm({
                                             employee.id,
                                         )}
                                         disabled={
-                                            vacationing &&
+                                            away &&
                                             !data.employee_ids.includes(
                                                 employee.id,
                                             )
@@ -671,8 +754,17 @@ function AssignmentForm({
                                         }
                                     />
                                     {employee.name}
-                                    {vacationing &&
-                                        ` (Urlaub${vacationNote ? `: ${vacationNote}` : ''})`}
+                                    {away &&
+                                        ` (Urlaub${vacation.notes ? `: ${vacation.notes}` : ''})`}
+                                    {vacation.kind === 'partial' && (
+                                        <span className="text-amber-700 dark:text-amber-400">
+                                            (Urlaub {vacation.when}
+                                            {vacation.notes
+                                                ? `: ${vacation.notes}`
+                                                : ''}
+                                            )
+                                        </span>
+                                    )}
                                 </Label>
                             );
                         })}
@@ -682,6 +774,14 @@ function AssignmentForm({
                             </span>
                         )}
                     </div>
+                    {partlyAway.length > 0 && (
+                        <p className="text-sm text-amber-700 dark:text-amber-400">
+                            {partlyAway.join(', ')}{' '}
+                            {partlyAway.length === 1 ? 'wird' : 'werden'} an den
+                            Urlaubstagen nicht eingeteilt, an den übrigen Tagen
+                            schon.
+                        </p>
+                    )}
                     <InputError message={errors.employee_ids} />
                 </div>
 

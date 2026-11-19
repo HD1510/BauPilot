@@ -5,6 +5,7 @@ use App\Models\Assignment;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Project;
+use App\Models\Vacation;
 use App\Models\Vehicle;
 use App\Support\Tenancy\CompanyContext;
 
@@ -308,4 +309,39 @@ test('fremde mitarbeiter und einteilungen bleiben unerreichbar', function () {
     $this->delete("/assignments/{$foreignAssignment->id}")->assertNotFound();
 
     expect(Assignment::withoutGlobalScopes()->count())->toBe(1);
+});
+
+test('urlaub im zeitraum: an den urlaubstagen nicht eingeteilt, an den übrigen schon', function () {
+    [, $company] = actingMember();
+    app(CompanyContext::class)->set($company);
+    $onLeave = Employee::factory()->create(['company_id' => $company->id, 'name' => 'Franz Polier']);
+    $present = Employee::factory()->create(['company_id' => $company->id, 'name' => 'Anna Helfer']);
+    Vacation::factory()->create([
+        'company_id' => $company->id,
+        'employee_id' => $onLeave->id,
+        'starts_on' => '2026-08-06',
+        'ends_on' => '2026-08-06',
+    ]);
+    app(CompanyContext::class)->clear();
+
+    $this->post('/assignments', [
+        'work_date' => '2026-08-05',
+        'work_date_until' => '2026-08-07',
+        'site' => 'Baustelle Mehrtägig',
+        'employee_ids' => [$onLeave->id, $present->id],
+    ])->assertRedirect()->assertSessionHas(
+        'success',
+        'Einteilung für 3 Tage angelegt. Franz Polier ist an 1 Tag im Urlaub und dort nicht eingeteilt.',
+    );
+
+    $crew = Assignment::withoutGlobalScopes()->orderBy('work_date')->get()
+        ->mapWithKeys(fn (Assignment $assignment) => [
+            $assignment->work_date->toDateString() => $assignment->employees()->orderBy('name')->pluck('name')->all(),
+        ])->all();
+
+    expect($crew)->toBe([
+        '2026-08-05' => ['Anna Helfer', 'Franz Polier'],
+        '2026-08-06' => ['Anna Helfer'],
+        '2026-08-07' => ['Anna Helfer', 'Franz Polier'],
+    ]);
 });

@@ -196,24 +196,59 @@ class AssignmentController extends Controller
         // Tage eines Zeitraums teilen sich dieselbe.
         $color = ((int) Assignment::query()->max('id') + 1) % 10;
 
-        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds, $from, $until, $color): void {
+        // Urlaub im Zeitraum: Der Mitarbeiter bleibt wählbar und wird an
+        // seinen Urlaubstagen einfach nicht eingeteilt.
+        $vacations = Vacation::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->whereDate('starts_on', '<=', $until->toDateString())
+            ->whereDate('ends_on', '>=', $from->toDateString())
+            ->with('employee:id,name')
+            ->get();
+
+        // Urlaubstage je Mitarbeitername, für die Rückmeldung.
+        $skipped = [];
+
+        DB::transaction(function () use ($validated, $employeeIds, $vehicleIds, $from, $until, $color, $vacations, &$skipped): void {
             for ($day = $from; $day->lessThanOrEqualTo($until); $day = $day->addDay()) {
+                $date = $day->toDateString();
+                $present = [];
+
+                foreach ($employeeIds as $employeeId) {
+                    $vacation = $vacations->first(fn (Vacation $vacation): bool => $vacation->employee_id === $employeeId
+                        && $vacation->starts_on->toDateString() <= $date
+                        && $vacation->ends_on->toDateString() >= $date);
+
+                    if ($vacation === null) {
+                        $present[] = $employeeId;
+
+                        continue;
+                    }
+
+                    $name = (string) $vacation->employee?->name;
+                    $skipped[$name] = ($skipped[$name] ?? 0) + 1;
+                }
+
                 $assignment = Assignment::create([
                     ...$validated,
-                    'work_date' => $day->toDateString(),
+                    'work_date' => $date,
                     'color' => $color,
-                    'position' => (int) Assignment::query()->whereDate('work_date', $day->toDateString())->max('position') + 1,
+                    'position' => (int) Assignment::query()->whereDate('work_date', $date)->max('position') + 1,
                 ]);
-                $assignment->employees()->sync($employeeIds);
+                $assignment->employees()->sync($present);
                 $assignment->vehicles()->sync($vehicleIds);
             }
         });
 
         $days = (int) $from->diffInDays($until) + 1;
-
-        return back()->with('success', $days > 1
+        $message = $days > 1
             ? "Einteilung für {$days} Tage angelegt."
-            : 'Einteilung gespeichert.');
+            : 'Einteilung gespeichert.';
+
+        foreach ($skipped as $name => $count) {
+            $message .= " {$name} ist an {$count} ".($count === 1 ? 'Tag' : 'Tagen').' im Urlaub und dort nicht eingeteilt.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function update(Request $request, Assignment $assignment): RedirectResponse
