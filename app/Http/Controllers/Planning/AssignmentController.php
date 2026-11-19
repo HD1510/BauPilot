@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Employee;
 use App\Models\Project;
+use App\Models\Vacation;
 use App\Models\Vehicle;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
@@ -97,6 +98,19 @@ class AssignmentController extends Controller
                 ->map(fn (Vehicle $vehicle): array => ['id' => $vehicle->id, 'plate' => $vehicle->plate])->values(),
             'projects' => Project::query()->orderBy('title')->get(['id', 'title'])
                 ->map(fn (Project $project): array => ['id' => $project->id, 'title' => $project->title])->values(),
+            // Urlaube ab dieser Woche: graut Betroffene im Formular aus
+            // und steht automatisch an jedem Urlaubstag in der Spalte.
+            'vacations' => Vacation::query()
+                ->where('ends_on', '>=', $monday->toDateString())
+                ->with('employee:id,name')
+                ->orderBy('starts_on')
+                ->get()
+                ->map(fn (Vacation $vacation): array => [
+                    'employee_id' => $vacation->employee_id,
+                    'name' => (string) $vacation->employee?->name,
+                    'starts_on' => $vacation->starts_on->toDateString(),
+                    'ends_on' => $vacation->ends_on->toDateString(),
+                ])->values(),
             'canWrite' => $canWrite,
         ]);
     }
@@ -122,12 +136,22 @@ class AssignmentController extends Controller
             ->get()
             ->groupBy(fn (Assignment $assignment): string => $assignment->work_date->toDateString());
 
+        $vacations = Vacation::query()
+            ->where('ends_on', '>=', $monday->toDateString())
+            ->where('starts_on', '<=', $monday->addDays(6)->toDateString())
+            ->with('employee:id,name')
+            ->get();
+
         // Mo–Fr immer, Sa/So nur mit Einträgen.
         $days = collect(range(0, 6))
             ->map(fn (int $offset): CarbonImmutable => $monday->addDays($offset))
             ->filter(fn (CarbonImmutable $day): bool => $day->isWeekday() || $assignments->has($day->toDateString()))
             ->map(fn (CarbonImmutable $day): array => [
                 'label' => self::WEEKDAYS[$day->dayOfWeekIso - 1].', '.$day->day.'. '.self::MONTHS[$day->month - 1],
+                'vacationers' => $vacations
+                    ->filter(fn (Vacation $vacation): bool => $day->betweenIncluded($vacation->starts_on, $vacation->ends_on))
+                    ->map(fn (Vacation $vacation): string => (string) $vacation->employee?->name)
+                    ->sort()->values()->all(),
                 'assignments' => $assignments->get($day->toDateString(), collect())
                     ->map(fn (Assignment $assignment): array => [
                         'label' => $assignment->label(),

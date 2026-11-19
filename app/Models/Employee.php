@@ -81,6 +81,12 @@ class Employee extends Model implements HasDocuments
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<Vacation, $this> */
+    public function vacations(): HasMany
+    {
+        return $this->hasMany(Vacation::class);
+    }
+
     /** @return HasMany<TimeEntry, $this> */
     public function timeEntries(): HasMany
     {

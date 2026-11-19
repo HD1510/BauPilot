@@ -48,6 +48,13 @@ type Props = {
     canManageAccount: boolean;
     roles: RoleOption[];
     documents: DocumentItem[] | null;
+    vacations: VacationItem[] | null;
+};
+
+type VacationItem = {
+    id: number;
+    starts_on: string;
+    ends_on: string;
 };
 
 export default function EmployeesEdit({
@@ -59,6 +66,7 @@ export default function EmployeesEdit({
     canManageAccount,
     roles,
     documents,
+    vacations,
 }: Props) {
     return (
         <>
@@ -160,6 +168,16 @@ export default function EmployeesEdit({
                                 { value: 'photo', label: 'Foto' },
                                 { value: 'other', label: 'Sonstiges' },
                             ]}
+                        />
+                    </>
+                )}
+
+                {vacations && (
+                    <>
+                        <Separator />
+                        <VacationsSection
+                            employeeId={employee.id}
+                            vacations={vacations}
                         />
                     </>
                 )}
@@ -368,6 +386,102 @@ function CreateAccountForm({
                 </Button>
             </div>
         </form>
+    );
+}
+
+function VacationsSection({
+    employeeId,
+    vacations,
+}: {
+    employeeId: number;
+    vacations: VacationItem[];
+}) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        starts_on: '',
+        ends_on: '',
+    });
+
+    const formatDate = (value: string) =>
+        new Date(`${value}T00:00:00`).toLocaleDateString('de-AT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+
+    return (
+        <div className="grid max-w-xl gap-4">
+            <Heading
+                variant="small"
+                title="Urlaub"
+                description="Eingetragene Urlaube erscheinen automatisch in der Einteilung — Betroffene sind dort ausgegraut"
+            />
+            {vacations.map((vacation) => (
+                <div
+                    key={vacation.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-sidebar-border/70 p-2.5 text-sm dark:border-sidebar-border"
+                >
+                    <span>
+                        {formatDate(vacation.starts_on)} bis{' '}
+                        {formatDate(vacation.ends_on)}
+                    </span>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label="Urlaub entfernen"
+                        onClick={() =>
+                            router.delete(
+                                `/employees/${employeeId}/vacations/${vacation.id}`,
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <Trash2 className="size-4" />
+                    </Button>
+                </div>
+            ))}
+            {vacations.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Noch kein Urlaub eingetragen.
+                </p>
+            )}
+            <form
+                className="flex flex-wrap items-end gap-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    post(`/employees/${employeeId}/vacations`, {
+                        preserveScroll: true,
+                        onSuccess: () => reset(),
+                    });
+                }}
+            >
+                <div className="grid gap-2">
+                    <Label htmlFor="vacation-starts">von</Label>
+                    <Input
+                        id="vacation-starts"
+                        type="date"
+                        value={data.starts_on}
+                        onChange={(e) => setData('starts_on', e.target.value)}
+                        required
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="vacation-ends">bis</Label>
+                    <Input
+                        id="vacation-ends"
+                        type="date"
+                        value={data.ends_on}
+                        min={data.starts_on}
+                        onChange={(e) => setData('ends_on', e.target.value)}
+                        required
+                    />
+                </div>
+                <Button type="submit" disabled={processing}>
+                    Urlaub eintragen
+                </Button>
+                <InputError message={errors.starts_on ?? errors.ends_on} />
+            </form>
+        </div>
     );
 }
 

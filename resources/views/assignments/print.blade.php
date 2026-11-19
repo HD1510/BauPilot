@@ -47,6 +47,9 @@
             <tr>
                 @foreach ($days as $day)
                     <td>
+                        @if (count($day['vacationers']) > 0)
+                            <div class="notes" style="margin: 0 0 5px;">Urlaub: {{ implode(', ', $day['vacationers']) }}</div>
+                        @endif
                         @forelse ($day['assignments'] as $assignment)
                             <div class="card" style="border-left-color: {{ $assignment['border'] }}; background: {{ $assignment['background'] }};">
                                 <div class="label">{{ $assignment['label'] }}</div>

@@ -9,6 +9,7 @@ use App\Http\Controllers\MasterData\MaterialController;
 use App\Http\Controllers\MasterData\MaterialScanController;
 use App\Http\Controllers\MasterData\OvertimeController;
 use App\Http\Controllers\MasterData\SupplierController;
+use App\Http\Controllers\MasterData\VacationController;
 use App\Http\Controllers\MasterData\VehicleController;
 use App\Http\Controllers\MasterData\VehicleDateController;
 use Illuminate\Support\Facades\Route;
@@ -52,6 +53,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::post('employees/{employee}/account', [EmployeeAccountController::class, 'store'])->name('employees.account.store');
     Route::patch('employees/{employee}/account/password', [EmployeeAccountController::class, 'updatePassword'])->name('employees.account.password');
+    // Urlaube — erscheinen automatisch in der Einteilung
+    Route::post('employees/{employee}/vacations', [VacationController::class, 'store'])->name('employees.vacations.store');
+    Route::delete('employees/{employee}/vacations/{vacation}', [VacationController::class, 'destroy'])->name('employees.vacations.destroy');
 
     // Überstunden je Monat und Auszahlungen (M8; Lohndaten, admin/büro)
     Route::post('employees/{employee}/overtime-entries', [OvertimeController::class, 'storeEntry'])->name('employees.overtime-entries.store');

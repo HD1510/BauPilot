@@ -30,6 +30,27 @@ type Option = { id: number; name: string };
 type VehicleOption = { id: number; plate: string };
 type ProjectOption = { id: number; title: string };
 
+type VacationRow = {
+    employee_id: number;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+};
+
+// ISO-Daten vergleichen sich als Text korrekt.
+const onVacation = (
+    vacations: VacationRow[],
+    employeeId: number,
+    from: string,
+    until?: string,
+) =>
+    vacations.some(
+        (vacation) =>
+            vacation.employee_id === employeeId &&
+            vacation.starts_on <= (until || from) &&
+            vacation.ends_on >= from,
+    );
+
 type AssignmentRow = {
     id: number;
     work_date: string;
@@ -63,6 +84,7 @@ type Props = {
     employees: Option[];
     vehicles: VehicleOption[];
     projects: ProjectOption[];
+    vacations: VacationRow[];
     canWrite: boolean;
 };
 
@@ -80,6 +102,7 @@ export default function AssignmentsIndex({
     employees,
     vehicles,
     projects,
+    vacations,
     canWrite,
 }: Props) {
     const [editing, setEditing] = useState<AssignmentRow | null>(null);
@@ -162,6 +185,14 @@ export default function AssignmentsIndex({
                         const dayAssignments = assignments.filter(
                             (assignment) => assignment.work_date === day,
                         );
+                        const dayVacationers = vacations
+                            .filter(
+                                (vacation) =>
+                                    vacation.starts_on <= day &&
+                                    vacation.ends_on >= day,
+                            )
+                            .map((vacation) => vacation.name)
+                            .sort();
 
                         return (
                             <div
@@ -223,6 +254,11 @@ export default function AssignmentsIndex({
                                         </Button>
                                     )}
                                 </div>
+                                {dayVacationers.length > 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Urlaub: {dayVacationers.join(', ')}
+                                    </p>
+                                )}
                                 {dayAssignments.map((assignment, index) => (
                                     <div
                                         key={assignment.id}
@@ -305,15 +341,30 @@ export default function AssignmentsIndex({
                                         </div>
                                         <div className="flex flex-wrap gap-1">
                                             {assignment.employees.map(
-                                                (employee) => (
-                                                    <Badge
-                                                        key={employee.id}
-                                                        variant="secondary"
-                                                        className="max-w-full whitespace-normal"
-                                                    >
-                                                        {employee.name}
-                                                    </Badge>
-                                                ),
+                                                (employee) => {
+                                                    const vacationing =
+                                                        onVacation(
+                                                            vacations,
+                                                            employee.id,
+                                                            day,
+                                                        );
+
+                                                    return (
+                                                        <Badge
+                                                            key={employee.id}
+                                                            variant="secondary"
+                                                            className={`max-w-full whitespace-normal ${
+                                                                vacationing
+                                                                    ? 'opacity-50'
+                                                                    : ''
+                                                            }`}
+                                                        >
+                                                            {employee.name}
+                                                            {vacationing &&
+                                                                ' (Urlaub)'}
+                                                        </Badge>
+                                                    );
+                                                },
                                             )}
                                             {assignment.employees.length ===
                                                 0 && (
@@ -365,6 +416,7 @@ export default function AssignmentsIndex({
                             employees={employees}
                             vehicles={vehicles}
                             projects={projects}
+                            vacations={vacations}
                             onDone={() => setEditing(null)}
                         />
                     </>
@@ -380,6 +432,7 @@ function AssignmentForm({
     employees,
     vehicles,
     projects,
+    vacations,
     onDone,
 }: {
     assignment: AssignmentRow | null;
@@ -387,6 +440,7 @@ function AssignmentForm({
     employees: Option[];
     vehicles: VehicleOption[];
     projects: ProjectOption[];
+    vacations: VacationRow[];
     onDone: () => void;
 }) {
     const { data, setData, post, patch, processing, errors, reset, transform } =
@@ -534,22 +588,44 @@ function AssignmentForm({
                 <div className="grid gap-2">
                     <Label>Mitarbeiter</Label>
                     <div className="flex flex-wrap gap-x-4 gap-y-2">
-                        {employees.map((employee) => (
-                            <Label
-                                key={employee.id}
-                                className="flex items-center gap-2 text-sm font-normal"
-                            >
-                                <Checkbox
-                                    checked={data.employee_ids.includes(
-                                        employee.id,
-                                    )}
-                                    onCheckedChange={() =>
-                                        toggle('employee_ids', employee.id)
-                                    }
-                                />
-                                {employee.name}
-                            </Label>
-                        ))}
+                        {employees.map((employee) => {
+                            // Im Urlaub am gewählten Tag (bzw. Zeitraum):
+                            // ausgegraut und nicht wählbar.
+                            const vacationing = onVacation(
+                                vacations,
+                                employee.id,
+                                data.work_date,
+                                assignment ? undefined : data.work_date_until,
+                            );
+
+                            return (
+                                <Label
+                                    key={employee.id}
+                                    className={`flex items-center gap-2 text-sm font-normal ${
+                                        vacationing
+                                            ? 'text-muted-foreground opacity-60'
+                                            : ''
+                                    }`}
+                                >
+                                    <Checkbox
+                                        checked={data.employee_ids.includes(
+                                            employee.id,
+                                        )}
+                                        disabled={
+                                            vacationing &&
+                                            !data.employee_ids.includes(
+                                                employee.id,
+                                            )
+                                        }
+                                        onCheckedChange={() =>
+                                            toggle('employee_ids', employee.id)
+                                        }
+                                    />
+                                    {employee.name}
+                                    {vacationing && ' (Urlaub)'}
+                                </Label>
+                            );
+                        })}
                         {employees.length === 0 && (
                             <span className="text-sm text-muted-foreground">
                                 Noch keine planbaren Mitarbeiter angelegt.

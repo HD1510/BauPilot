@@ -12,6 +12,7 @@ use App\Models\OvertimePayout;
 use App\Models\SiteReportEntry;
 use App\Models\TimeEntry;
 use App\Models\User;
+use App\Models\Vacation;
 use App\Support\Employees\EmployeeAccountCreator;
 use App\Support\Overtime\OvertimeBalance;
 use App\Support\Tenancy\CompanyContext;
@@ -179,6 +180,14 @@ class EmployeeController extends Controller
                         'category_label' => $document->category->label(),
                         'size' => $document->size,
                         'is_image' => str_starts_with($document->mime, 'image/'),
+                    ])->values()
+                : null,
+            'vacations' => $canWrite
+                ? $employee->vacations()->orderByDesc('starts_on')->get()
+                    ->map(fn (Vacation $vacation): array => [
+                        'id' => $vacation->id,
+                        'starts_on' => $vacation->starts_on->toDateString(),
+                        'ends_on' => $vacation->ends_on->toDateString(),
                     ])->values()
                 : null,
         ]);
