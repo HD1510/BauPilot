@@ -24,6 +24,18 @@ use Inertia\Response;
 
 class IncomingInvoiceController extends Controller
 {
+    private const PER_PAGE = 50;
+
+    /** Sortierungen der Liste: Schlüssel → [Spalte, Richtung]. */
+    private const SORTS = [
+        'date_desc' => ['invoice_date', 'desc'],
+        'date_asc' => ['invoice_date', 'asc'],
+        'amount_desc' => ['gross', 'desc'],
+        'amount_asc' => ['gross', 'asc'],
+        'due_asc' => ['payment_due_on', 'asc'],
+        'supplier_asc' => ['supplier', 'asc'],
+    ];
+
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', IncomingInvoice::class);
@@ -31,17 +43,44 @@ class IncomingInvoiceController extends Controller
         $q = trim((string) $request->query('q'));
         $onlyOpen = $request->boolean('open');
         $onlyUnchecked = $request->boolean('unchecked');
+        $sort = (string) $request->query('sort', 'date_desc');
 
-        $invoices = IncomingInvoice::query()
-            ->with(['supplier:id,name', 'costType:id,name', 'project:id,title'])
+        if (! array_key_exists($sort, self::SORTS)) {
+            $sort = 'date_desc';
+        }
+
+        $query = IncomingInvoice::query()
             ->when($onlyOpen, fn ($query) => $query->where('payment_status', '!=', IncomingPaymentStatus::Paid->value))
             ->when($onlyUnchecked, fn ($query) => $query->where('checked', false))
             ->when($q !== '', fn ($query) => $query->where(fn ($where) => $where
                 ->whereLike('supplier_invoice_no', "%{$q}%")
                 ->orWhereLike('subject', "%{$q}%")
-                ->orWhereHas('supplier', fn ($supplier) => $supplier->whereLike('name', "%{$q}%"))))
-            ->orderByDesc('invoice_date')
-            ->get()
+                ->orWhereHas('supplier', fn ($supplier) => $supplier->whereLike('name', "%{$q}%"))
+                ->orWhereHas('project', fn ($project) => $project->whereLike('title', "%{$q}%"))));
+
+        // Summe über ALLE Treffer, nicht nur über die angezeigte Seite.
+        $summary = [
+            'count' => (clone $query)->count(),
+            'gross_sum' => (string) ((clone $query)->sum('gross') ?: '0'),
+        ];
+
+        [$column, $direction] = self::SORTS[$sort];
+
+        $page = $query
+            ->with(['supplier:id,name', 'costType:id,name', 'project:id,title'])
+            ->when(
+                $column === 'supplier',
+                fn ($query) => $query->orderBy(
+                    Supplier::query()->select('name')->whereColumn('suppliers.id', 'incoming_invoices.supplier_id'),
+                    $direction,
+                ),
+                fn ($query) => $query->orderBy($column, $direction),
+            )
+            ->orderByDesc('id')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        $invoices = collect($page->items())
             ->map(fn (IncomingInvoice $invoice): array => [
                 'id' => $invoice->id,
                 'supplier' => $invoice->supplier?->name,
@@ -60,7 +99,13 @@ class IncomingInvoiceController extends Controller
 
         return Inertia::render('incoming-invoices/index', [
             'invoices' => $invoices,
-            'filters' => ['q' => $q, 'open' => $onlyOpen, 'unchecked' => $onlyUnchecked],
+            'summary' => $summary,
+            'pagination' => [
+                'page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'total' => $page->total(),
+            ],
+            'filters' => ['q' => $q, 'open' => $onlyOpen, 'unchecked' => $onlyUnchecked, 'sort' => $sort],
         ]);
     }
 

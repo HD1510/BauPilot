@@ -26,11 +26,21 @@ use Inertia\Response;
 
 class OutgoingInvoiceController extends Controller
 {
+    private const PER_PAGE = 50;
+
+    private const SORTS = ['due_asc', 'due_desc', 'date_desc', 'amount_desc', 'customer_asc'];
+
     public function index(Request $request, OpenItemsQuery $query): Response
     {
         Gate::authorize('viewAny', OutgoingInvoice::class);
 
         $includeSettled = $request->boolean('all');
+        $q = mb_strtolower(trim((string) $request->query('q')));
+        $sort = (string) $request->query('sort', 'due_asc');
+
+        if (! in_array($sort, self::SORTS, true)) {
+            $sort = 'due_asc';
+        }
 
         $rows = $query->rows(includeSettled: $includeSettled)
             ->map(fn (array $row): array => [
@@ -49,10 +59,37 @@ class OutgoingInvoiceController extends Controller
                 'status_label' => $row['status']->label(),
             ]);
 
+        if ($q !== '') {
+            $rows = $rows->filter(fn (array $row): bool => str_contains(
+                mb_strtolower($row['number'].' '.$row['customer'].' '.$row['project']),
+                $q,
+            ));
+        }
+
+        $rows = match ($sort) {
+            'due_desc' => $rows->sortByDesc('due_on'),
+            'date_desc' => $rows->sortByDesc('invoice_date'),
+            'amount_desc' => $rows->sortByDesc('due_now'),
+            'customer_asc' => $rows->sortBy(fn (array $row): string => mb_strtolower((string) $row['customer'])),
+            default => $rows->sortBy('due_on'),
+        };
+
+        $page = max(1, $request->integer('page', 1));
+        $total = $rows->count();
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min($page, $lastPage);
+
         return Inertia::render('outgoing-invoices/index', [
-            'rows' => $rows,
+            'rows' => $rows->forPage($page, self::PER_PAGE)->values(),
             'totals' => $query->totals(),
-            'filters' => ['all' => $includeSettled],
+            // Summe über ALLE Treffer, nicht nur über die angezeigte Seite.
+            'summary' => [
+                'count' => $total,
+                'due_now_sum' => round((float) $rows->sum('due_now'), 2),
+                'gross_sum' => round((float) $rows->sum('gross_effective'), 2),
+            ],
+            'pagination' => ['page' => $page, 'last_page' => $lastPage, 'total' => $total],
+            'filters' => ['all' => $includeSettled, 'q' => (string) $request->query('q', ''), 'sort' => $sort],
         ]);
     }
 
