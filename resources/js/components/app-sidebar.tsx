@@ -4,6 +4,7 @@ import {
     Calculator,
     CalendarClock,
     CalendarRange,
+    ChevronDown,
     Clock,
     FileSpreadsheet,
     Car,
@@ -20,6 +21,7 @@ import {
     Tags,
     Truck,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import AppLogo from '@/components/app-logo';
 import { CompanySwitcher } from '@/components/company-switcher';
 import { NavMain } from '@/components/nav-main';
@@ -104,6 +106,38 @@ const invoiceNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { tenancy } = usePage().props;
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [moreBelow, setMoreBelow] = useState(false);
+
+    // Auf niedrigen Bildschirmen passt das Menü nicht ganz — ein Pfeil
+    // am unteren Rand zeigt, dass darunter noch Einträge liegen.
+    useEffect(() => {
+        const element = contentRef.current;
+
+        if (!element) {
+            return;
+        }
+
+        const update = () =>
+            setMoreBelow(
+                element.scrollHeight -
+                    element.scrollTop -
+                    element.clientHeight >
+                    8,
+            );
+        const observer = new ResizeObserver(update);
+
+        observer.observe(element);
+        Array.from(element.children).forEach((child) =>
+            observer.observe(child),
+        );
+        element.addEventListener('scroll', update, { passive: true });
+
+        return () => {
+            observer.disconnect();
+            element.removeEventListener('scroll', update);
+        };
+    }, []);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -120,7 +154,7 @@ export function AppSidebar() {
                 <CompanySwitcher />
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent ref={contentRef}>
                 <NavMain items={mainNavItems} label="Übersicht" />
                 <NavMain
                     items={
@@ -138,8 +172,17 @@ export function AppSidebar() {
                 {tenancy.canViewFinancials && (
                     <NavMain items={invoiceNavItems} label="Belege" />
                 )}
-                <NavMain items={masterDataNavItems} label="Stammdaten" />
+                <NavMain
+                    items={masterDataNavItems}
+                    label="Stammdaten"
+                    defaultOpen={false}
+                />
             </SidebarContent>
+            {moreBelow && (
+                <div className="pointer-events-none relative -mt-8 flex h-8 shrink-0 items-end justify-center bg-gradient-to-t from-sidebar to-transparent pb-0.5 group-data-[collapsible=icon]:hidden">
+                    <ChevronDown className="size-4 text-sidebar-foreground/60" />
+                </div>
+            )}
 
             <SidebarFooter>
                 <NavUser />
