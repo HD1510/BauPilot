@@ -329,8 +329,8 @@ export default function ProjectsShow({
                     title="Nachträge"
                     description={
                         canViewFinancials
-                            ? 'Zusatzaufträge mit Statuslauf und Betrag'
-                            : 'Zusatzaufträge mit Statuslauf'
+                            ? 'Zusatzaufträge mit Status und Betrag'
+                            : 'Zusatzaufträge mit Status'
                     }
                 />
                 <div className="grid max-w-xl gap-2">

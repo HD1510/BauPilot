@@ -1,10 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    EmptyState,
-    IndexShell
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState, IndexShell } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
 import { Badge } from '@/components/ui/badge';
 
 type SupplierListItem = {
@@ -30,7 +26,7 @@ export default function SuppliersIndex({
             <Head title="Lieferanten" />
             <IndexShell
                 title="Lieferanten"
-                description="Lieferantenstamm der aktiven Firma"
+                description="Alle Lieferanten und Subunternehmer Ihrer Firma"
                 basePath="/suppliers"
                 createLabel="Neuer Lieferant"
                 filters={filters}

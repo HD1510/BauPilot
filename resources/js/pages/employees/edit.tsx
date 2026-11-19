@@ -77,7 +77,7 @@ export default function EmployeesEdit({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={employee.name}
-                        description="Mitarbeiterstammblatt"
+                        description="Kontaktdaten, Urlaub, Überstunden und Unterlagen"
                     />
                     {canWrite && (
                         <div className="flex gap-2">

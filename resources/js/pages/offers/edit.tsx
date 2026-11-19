@@ -34,7 +34,7 @@ export default function OffersEdit({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={`Angebot ${offer.offer_number ?? `#${offer.id}`}`}
-                        description="Statuslauf und Übernahme ins Projekt"
+                        description="Status ändern und bei Annahme ein Projekt daraus machen"
                     />
                     {offer.project_id ? (
                         <Button variant="outline" asChild>

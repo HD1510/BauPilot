@@ -33,7 +33,7 @@ export default function ImportsIndex({ runs }: { runs: RunRow[] }) {
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Excel-Import"
-                    description="Zweiphasig: Dry-Run mit Prüfbericht, dann Übernahme — erneute Läufe derselben Datei legen nichts doppelt an"
+                    description="Erst ein Probelauf mit Prüfbericht, dann die Übernahme — dieselbe Datei noch einmal einzulesen legt nichts doppelt an"
                 />
 
                 <FileDropZone
@@ -78,7 +78,7 @@ export default function ImportsIndex({ runs }: { runs: RunRow[] }) {
                             disabled={processing || !data.file}
                         >
                             <Upload className="size-4" />
-                            Dry-Run starten
+                            Probelauf starten
                         </Button>
                     </form>
                 </FileDropZone>
@@ -114,7 +114,7 @@ export default function ImportsIndex({ runs }: { runs: RunRow[] }) {
                             >
                                 {run.status === 'committed'
                                     ? 'Übernommen'
-                                    : 'Dry-Run'}
+                                    : 'Probelauf'}
                             </Badge>
                         </Link>
                     ))}

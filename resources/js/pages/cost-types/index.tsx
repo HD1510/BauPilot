@@ -41,7 +41,7 @@ export default function CostTypesIndex({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Kostenarten"
-                    description="Ordnen Eingangsrechnungen einer Kategorie zu — je Firma frei definierbar"
+                    description="Kategorien für Eingangsrechnungen, z. B. Material oder Subunternehmer — frei anlegbar"
                 />
 
                 <Label className="flex w-fit items-center gap-2 text-sm font-normal">

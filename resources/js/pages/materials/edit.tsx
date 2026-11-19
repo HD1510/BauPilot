@@ -27,7 +27,7 @@ export default function MaterialsEdit({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={material.name}
-                        description="Artikel-Stammblatt"
+                        description="Bezeichnung, Einheit und Preis dieses Artikels"
                     />
                     {canWrite && (
                         <div className="flex gap-2">

@@ -818,7 +818,7 @@ function PlanImportCard({
                 // die Anwendung überhaupt etwas sieht.
                 toast.error(
                     response.status === 413
-                        ? 'Die Datei ist größer, als der Server annimmt — in der Server-Konfiguration client_max_body_size bzw. upload_max_filesize erhöhen (z. B. auf 50 MB).'
+                        ? 'Die Datei ist zu groß zum Hochladen. Bitte eine kleinere Datei wählen — oder den Administrator bitten, die Upload-Grenze am Server zu erhöhen (client_max_body_size bzw. upload_max_filesize, z. B. 50 MB).'
                         : (json?.message ??
                               `Der Plan konnte nicht gelesen werden (Fehler ${response.status}).`),
                 );

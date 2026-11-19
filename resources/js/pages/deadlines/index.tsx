@@ -23,7 +23,7 @@ export default function DeadlinesIndex({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Termine & Fristen"
-                    description={`Die nächsten ${horizonDays} Tage — erledigen heißt immer, die Ursache zu bearbeiten`}
+                    description={`Die nächsten ${horizonDays} Tage — eine Frist verschwindet, sobald die Sache erledigt ist (z. B. Rechnung bezahlt, Aufgabe abgehakt)`}
                 />
 
                 {overdue.length > 0 && (

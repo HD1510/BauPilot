@@ -1,10 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    EmptyState,
-    IndexShell
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState, IndexShell } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
 import { Badge } from '@/components/ui/badge';
 
 type CustomerListItem = {
@@ -30,7 +26,7 @@ export default function CustomersIndex({
             <Head title="Kunden" />
             <IndexShell
                 title="Kunden"
-                description="Kundenstamm der aktiven Firma"
+                description="Alle Kunden Ihrer Firma"
                 basePath="/customers"
                 createLabel="Neuer Kunde"
                 filters={filters}
@@ -51,7 +47,11 @@ export default function CustomersIndex({
                                 )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {[customer.address, customer.phone, customer.email]
+                                {[
+                                    customer.address,
+                                    customer.phone,
+                                    customer.email,
+                                ]
                                     .filter(Boolean)
                                     .join(' · ') || '—'}
                             </div>

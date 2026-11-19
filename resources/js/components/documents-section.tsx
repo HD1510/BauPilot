@@ -110,7 +110,7 @@ export function DocumentsSection({
             <Heading
                 variant="small"
                 title={photoGallery ? 'Fotos & Dateien' : 'Dateien'}
-                description="Anhänge liegen privat im Dokumentenspeicher"
+                description="Nur für angemeldete Benutzer Ihrer Firma sichtbar"
             />
             {photoGallery && photos.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">

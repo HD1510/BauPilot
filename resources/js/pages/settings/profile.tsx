@@ -42,7 +42,7 @@ export default function Profile(
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your name and email address"
+                    description="Name und E-Mail-Adresse ändern"
                 />
 
                 <Form

@@ -194,7 +194,7 @@ export default function OutgoingInvoicesShow({
                         <Heading
                             variant="small"
                             title="Gutschriften und Storni"
-                            description="Negativ in diese Rechnung eingerechnet"
+                            description="Von dieser Rechnung abgezogen"
                         />
                         <div className="mt-2 grid gap-2">
                             {adjustments.map((adjustment) => (
@@ -244,7 +244,7 @@ export default function OutgoingInvoicesShow({
                 <Heading
                     variant="small"
                     title="Zahlungen"
-                    description="Der Zahlstatus wird bei jeder Buchung neu abgeleitet"
+                    description="Der Zahlstatus stellt sich nach jeder Zahlung von selbst richtig"
                 />
                 <div className="grid max-w-xl gap-2">
                     {payments.map((payment) => (
@@ -539,7 +539,7 @@ function AddAdjustmentForm({ invoiceId }: { invoiceId: number }) {
             <Heading
                 variant="small"
                 title="Gutschrift / Storno"
-                description="Wird negativ gespeichert und in diese Rechnung eingerechnet"
+                description="Wird von dieser Rechnung abgezogen"
             />
             <form
                 className="flex flex-wrap items-end gap-3"

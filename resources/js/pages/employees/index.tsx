@@ -31,7 +31,7 @@ export default function EmployeesIndex({
             <Head title="Mitarbeiter" />
             <IndexShell
                 title="Mitarbeiter"
-                description="Mitarbeiterstamm — auch ohne eigenes Benutzerkonto"
+                description="Alle Mitarbeiter — auch jene, die sich nicht selbst anmelden"
                 basePath="/employees"
                 createLabel="Neuer Mitarbeiter"
                 filters={filters}

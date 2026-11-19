@@ -45,7 +45,7 @@ export default function OffersIndex({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Angebote"
-                        description="Anfragen und Angebote an Kunden mit Statuslauf"
+                        description="Anfragen und Angebote an Kunden — von der Anfrage bis zur Annahme"
                     />
                     <Button asChild>
                         <Link href="/offers/create">

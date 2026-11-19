@@ -9,7 +9,7 @@ export default function CustomersCreate() {
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Neuer Kunde"
-                    description="Bei ähnlichen Namen schlägt BauPilot mögliche Dubletten vor"
+                    description="Gibt es einen ähnlichen Namen schon, weist BauPilot darauf hin"
                 />
                 <CustomerForm
                     action="/customers"

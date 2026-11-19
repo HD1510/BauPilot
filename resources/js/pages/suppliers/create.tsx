@@ -1,10 +1,7 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import {
-    SupplierForm
-    
-} from '@/components/master-data/supplier-form';
-import type {CostTypeOption} from '@/components/master-data/supplier-form';
+import { SupplierForm } from '@/components/master-data/supplier-form';
+import type { CostTypeOption } from '@/components/master-data/supplier-form';
 
 export default function SuppliersCreate({
     costTypes,
@@ -17,7 +14,7 @@ export default function SuppliersCreate({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Neuer Lieferant"
-                    description="Bei ähnlichen Namen schlägt BauPilot mögliche Dubletten vor"
+                    description="Gibt es einen ähnlichen Namen schon, weist BauPilot darauf hin"
                 />
                 <SupplierForm
                     action="/suppliers"

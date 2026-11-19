@@ -1,12 +1,11 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import {
-    ProjectForm
-    
-    
-    
+import { ProjectForm } from '@/components/sales/project-form';
+import type {
+    Option,
+    ProjectFormValues,
+    StatusOption,
 } from '@/components/sales/project-form';
-import type {Option, ProjectFormValues, StatusOption} from '@/components/sales/project-form';
 
 type Props = {
     project: ProjectFormValues & { id: number };
@@ -27,7 +26,7 @@ export default function ProjectsEdit({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title={project.title}
-                    description="Projekt-Stammdaten bearbeiten"
+                    description="Kunde, Baustelle, Termine und Status ändern"
                 />
                 <ProjectForm
                     action={`/projects/${project.id}`}

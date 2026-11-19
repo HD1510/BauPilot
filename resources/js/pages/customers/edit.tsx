@@ -32,7 +32,7 @@ export default function CustomersEdit({ customer, contacts, canWrite }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={customer.name}
-                        description="Kundenstammblatt mit Ansprechpartnern"
+                        description="Adresse, Kontaktdaten und Ansprechpartner"
                     />
                     {canWrite && (
                         <div className="flex gap-2">

@@ -92,7 +92,7 @@ export default function IncomingInvoicesCreate({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Neue Eingangsrechnung"
-                    description="Kostenart Pflicht; §19-Rechnungen ohne USt"
+                    description="Die Kostenart ist Pflicht. Bei Rechnungen nach § 19 (Reverse Charge) fällt keine USt an."
                 />
                 <InvoiceScanCard
                     onApply={applyScan}

@@ -1,10 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    EmptyState,
-    IndexShell
-    
-} from '@/components/master-data/index-shell';
-import type {IndexFilters} from '@/components/master-data/index-shell';
+import { EmptyState, IndexShell } from '@/components/master-data/index-shell';
+import type { IndexFilters } from '@/components/master-data/index-shell';
 import { Badge } from '@/components/ui/badge';
 
 type VehicleListItem = {
@@ -38,7 +34,7 @@ export default function VehiclesIndex({
             <Head title="Fahrzeuge" />
             <IndexShell
                 title="Fahrzeuge"
-                description="Fuhrpark mit Pickerl-, Vignetten- und Zusatzterminen"
+                description="Alle Fahrzeuge mit Pickerl, Vignette und weiteren Terminen"
                 basePath="/vehicles"
                 createLabel="Neues Fahrzeug"
                 filters={filters}

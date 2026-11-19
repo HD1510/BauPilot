@@ -48,7 +48,7 @@ export function OvertimeSection({
             <Heading
                 variant="small"
                 title="Überstunden"
-                description="Monatssalden und Auszahlungen — der Saldo wird immer gerechnet"
+                description="Stunden je Monat und Auszahlungen — den Stand rechnet BauPilot laufend aus"
             />
 
             <div className="flex flex-wrap gap-3">
@@ -110,7 +110,7 @@ export function OvertimeSection({
             <Heading
                 variant="small"
                 title="Auszahlungen"
-                description="Ziehen Stunden vom Saldo ab"
+                description="Ausbezahlte Stunden werden vom Stand abgezogen"
             />
             <div className="grid gap-2">
                 {overtime.payouts.map((payout) => (

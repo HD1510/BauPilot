@@ -38,7 +38,7 @@ export default function ProjectsIndex({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Projekte"
-                        description="Die Drehscheibe: Termine, Nachträge, Belege und Zahlen je Bauvorhaben"
+                        description="Je Bauvorhaben alles an einem Ort: Termine, Aufgaben, Nachträge, Rechnungen und Fotos"
                     />
                     <Button asChild>
                         <Link href="/projects/create">

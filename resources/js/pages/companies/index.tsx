@@ -30,7 +30,7 @@ export default function CompaniesIndex({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Firmen"
-                        description="Mandanten, in denen Sie arbeiten"
+                        description="Firmen, in denen Sie arbeiten"
                     />
                     <Button asChild>
                         <Link href="/companies/create">

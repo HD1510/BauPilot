@@ -69,7 +69,7 @@ export default function IncomingInvoicesIndex({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Eingangsrechnungen"
-                        description="Lieferanten- und Subunternehmerrechnungen mit Skonto und Prüfvermerk"
+                        description="Rechnungen von Lieferanten und Subunternehmern — mit Skonto und „geprüft“-Häkchen"
                     />
                     <Button asChild>
                         <Link href="/incoming-invoices/create">

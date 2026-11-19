@@ -27,7 +27,7 @@ export default function VehiclesEdit({ vehicle, dates, canWrite }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={vehicle.plate}
-                        description="Fahrzeugstammblatt mit Terminen"
+                        description="Fahrzeugdaten, Pickerl, Vignette und weitere Termine"
                     />
                     {canWrite && (
                         <div className="flex gap-2">
@@ -91,7 +91,7 @@ export default function VehiclesEdit({ vehicle, dates, canWrite }: Props) {
                 <Heading
                     variant="small"
                     title="Weitere Termine"
-                    description="Service, Eichung, Kranprüfung — fließen später in die Fristenliste ein"
+                    description="Service, Eichung, Kranprüfung — erscheinen rechtzeitig in der Fristenliste"
                 />
 
                 <div className="grid max-w-xl gap-2">

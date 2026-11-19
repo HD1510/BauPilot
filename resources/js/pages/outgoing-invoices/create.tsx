@@ -109,7 +109,7 @@ export default function OutgoingInvoicesCreate({
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <Heading
                     title="Neue Ausgangsrechnung"
-                    description="Netto oder brutto eingeben — das Gegenstück rechnet der Server (MoneyHelper)"
+                    description="Netto oder brutto eingeben — den anderen Betrag rechnet BauPilot aus"
                 />
                 <InvoiceScanCard
                     onApply={applyScan}

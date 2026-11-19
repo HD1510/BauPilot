@@ -106,7 +106,7 @@ export default function SiteReportsCreate({
 
         const message =
             (result.body as { message?: string } | null)?.message ??
-            'Der Bericht wurde vom Server abgelehnt.';
+            'Der Bericht konnte nicht gespeichert werden.';
         toast.error(message);
     };
 
@@ -117,7 +117,7 @@ export default function SiteReportsCreate({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title="Regiebericht erfassen"
-                        description="Funktioniert auch ohne Netz — der Bericht synchronisiert nach"
+                        description="Funktioniert auch ohne Netz — der Bericht wird nachgesendet, sobald wieder Empfang da ist"
                     />
                     {pending > 0 && (
                         <Badge variant="secondary" className="gap-1">

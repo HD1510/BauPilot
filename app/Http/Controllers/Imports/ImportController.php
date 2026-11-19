@@ -67,7 +67,7 @@ class ImportController extends Controller
         }
 
         return redirect()->route('imports.show', $run)
-            ->with('success', 'Dry-Run abgeschlossen — bitte Prüfbericht kontrollieren.');
+            ->with('success', 'Probelauf abgeschlossen — bitte Prüfbericht kontrollieren.');
     }
 
     public function show(ImportRun $import): Response

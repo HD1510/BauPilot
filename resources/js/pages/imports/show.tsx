@@ -41,7 +41,7 @@ type Props = {
 };
 
 const typeLabels: Record<string, string> = {
-    duplicate: 'Dublette',
+    duplicate: 'Doppelt?',
     estimate: 'Geschätztes Datum',
     warning: 'Warnung',
 };
@@ -56,14 +56,16 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={run.source_filename}
-                        description="Prüfbericht des Dry-Runs — übernommen wird erst nach Ihren Entscheidungen"
+                        description="Ergebnis des Probelaufs — übernommen wird erst, wenn Sie entschieden haben"
                     />
                     <Badge
                         variant={
                             run.status === 'committed' ? 'secondary' : 'outline'
                         }
                     >
-                        {run.status === 'committed' ? 'Übernommen' : 'Dry-Run'}
+                        {run.status === 'committed'
+                            ? 'Übernommen'
+                            : 'Probelauf'}
                     </Badge>
                 </div>
 
@@ -94,7 +96,7 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                 <Heading
                     variant="small"
                     title={`Prüfbericht (${findings.length})`}
-                    description="Dubletten brauchen eine Entscheidung; Schätzungen und Warnungen sind Hinweise"
+                    description="Bei doppelten Einträgen müssen Sie entscheiden; Schätzungen und Warnungen sind nur Hinweise"
                 />
 
                 <div className="grid max-w-3xl gap-2">
@@ -184,7 +186,8 @@ export default function ImportsShow({ run, findings, undecided }: Props) {
                             {undecided > 0 && (
                                 <span className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
                                     <AlertTriangle className="size-4" />
-                                    Noch {undecided} Dubletten zu entscheiden
+                                    Noch {undecided} doppelte Einträge zu
+                                    entscheiden
                                 </span>
                             )}
                             <InputError message={errors.commit} />

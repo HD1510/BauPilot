@@ -27,7 +27,7 @@ export default function SuppliersEdit({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <Heading
                         title={supplier.name}
-                        description="Lieferantenstammblatt"
+                        description="Adresse, Kontaktdaten und Zahlungsbedingungen"
                     />
                     {canWrite && (
                         <div className="flex gap-2">
