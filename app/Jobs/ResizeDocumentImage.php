@@ -106,6 +106,6 @@ class ResizeDocumentImage implements ShouldQueue
         $result = ob_get_clean();
         imagedestroy($target);
 
-        return $result === '' ? null : $result;
+        return $result === false || $result === '' ? null : $result;
     }
 }

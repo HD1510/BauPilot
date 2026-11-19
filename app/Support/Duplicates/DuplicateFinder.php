@@ -56,10 +56,15 @@ class DuplicateFinder
                 'name' => (string) $model->getAttribute('name'),
                 'similarity' => round(self::trigramSimilarity($normalized, (string) $model->getAttribute('normalized_name')), 2),
             ])
-            ->filter(fn (array $match): bool => $match['similarity'] >= self::THRESHOLD)
+            ->filter(fn (array $match): bool => self::reachesThreshold($match['similarity']))
             ->sortByDesc('similarity')
             ->take(5)
             ->values();
+    }
+
+    private static function reachesThreshold(float $similarity): bool
+    {
+        return $similarity >= self::THRESHOLD;
     }
 
     /**
