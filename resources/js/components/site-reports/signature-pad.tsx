@@ -85,7 +85,12 @@ export function SignaturePad({
                         const context = canvas?.getContext('2d');
 
                         if (canvas && context) {
-                            context.clearRect(0, 0, canvas.width, canvas.height);
+                            context.clearRect(
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height,
+                            );
                         }
 
                         hasInk.current = false;

@@ -204,9 +204,7 @@ export function ProjectForm({
                                 id={field}
                                 type="date"
                                 value={data[field]}
-                                onChange={(e) =>
-                                    setData(field, e.target.value)
-                                }
+                                onChange={(e) => setData(field, e.target.value)}
                             />
                             <InputError message={errors[field]} />
                         </div>
@@ -218,9 +216,7 @@ export function ProjectForm({
                     <Textarea
                         id="description"
                         value={data.description}
-                        onChange={(e) =>
-                            setData('description', e.target.value)
-                        }
+                        onChange={(e) => setData('description', e.target.value)}
                     />
                     <InputError message={errors.description} />
                 </div>

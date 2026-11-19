@@ -1,10 +1,7 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import {
-    MaterialForm
-    
-} from '@/components/master-data/material-form';
-import type {SupplierOption} from '@/components/master-data/material-form';
+import { MaterialForm } from '@/components/master-data/material-form';
+import type { SupplierOption } from '@/components/master-data/material-form';
 
 export default function MaterialsCreate({
     suppliers,

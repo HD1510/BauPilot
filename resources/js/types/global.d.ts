@@ -18,8 +18,7 @@ declare module '@inertiajs/core' {
                 success?: string | null;
                 error?: string | null;
                 duplicates?:
-                    | { id: number; name: string; similarity: number }[]
-                    | null;
+                    { id: number; name: string; similarity: number }[] | null;
             };
             sidebarOpen: boolean;
             [key: string]: unknown;

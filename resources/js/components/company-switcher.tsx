@@ -1,5 +1,11 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Building2, Check, ChevronsUpDown, Plus, Settings2 } from 'lucide-react';
+import {
+    Building2,
+    Check,
+    ChevronsUpDown,
+    Plus,
+    Settings2,
+} from 'lucide-react';
 import { CompanyBadge } from '@/components/company-badge';
 import {
     DropdownMenu,

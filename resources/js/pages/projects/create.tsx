@@ -1,11 +1,7 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
-import {
-    ProjectForm
-    
-    
-} from '@/components/sales/project-form';
-import type {Option, StatusOption} from '@/components/sales/project-form';
+import { ProjectForm } from '@/components/sales/project-form';
+import type { Option, StatusOption } from '@/components/sales/project-form';
 
 export default function ProjectsCreate({
     customers,
