@@ -24,6 +24,11 @@ class TimeEntryPolicy
         return $user->currentRole() !== null;
     }
 
+    public function update(User $user, TimeEntry $entry): bool
+    {
+        return $this->delete($user, $entry);
+    }
+
     public function delete(User $user, TimeEntry $entry): bool
     {
         if ($entry->created_by === $user->id) {

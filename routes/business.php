@@ -108,6 +108,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Zeiterfassung (M8): Schnellerfassung je Projekt
     Route::get('time-entries', [TimeEntryController::class, 'index'])->name('time-entries.index');
     Route::post('time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
+    Route::post('time-entries/from-assignments', [TimeEntryController::class, 'fromAssignments'])->name('time-entries.from-assignments');
+    Route::patch('time-entries/{time_entry}', [TimeEntryController::class, 'update'])->name('time-entries.update');
     Route::delete('time-entries/{time_entry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 
     // Regieberichte (M9): Nummernkreis, Unterschrift, Sperre
