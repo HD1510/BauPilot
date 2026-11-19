@@ -110,6 +110,7 @@ class AssignmentController extends Controller
                     'name' => (string) $vacation->employee?->name,
                     'starts_on' => $vacation->starts_on->toDateString(),
                     'ends_on' => $vacation->ends_on->toDateString(),
+                    'notes' => $vacation->notes,
                 ])->values(),
             'canWrite' => $canWrite,
         ]);
@@ -150,7 +151,8 @@ class AssignmentController extends Controller
                 'label' => self::WEEKDAYS[$day->dayOfWeekIso - 1].', '.$day->day.'. '.self::MONTHS[$day->month - 1],
                 'vacationers' => $vacations
                     ->filter(fn (Vacation $vacation): bool => $day->betweenIncluded($vacation->starts_on, $vacation->ends_on))
-                    ->map(fn (Vacation $vacation): string => (string) $vacation->employee?->name)
+                    ->map(fn (Vacation $vacation): string => (string) $vacation->employee?->name
+                        .($vacation->notes !== null ? " ({$vacation->notes})" : ''))
                     ->sort()->values()->all(),
                 'assignments' => $assignments->get($day->toDateString(), collect())
                     ->map(fn (Assignment $assignment): array => [

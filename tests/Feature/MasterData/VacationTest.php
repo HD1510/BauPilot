@@ -2,6 +2,7 @@
 
 use App\Enums\CompanyRole;
 use App\Models\Assignment;
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Vacation;
 use App\Support\Tenancy\CompanyContext;
@@ -60,6 +61,7 @@ test('die einteilung liefert urlaube der woche mit', function () {
         'employee_id' => $employee->id,
         'starts_on' => '2026-11-23',
         'ends_on' => '2026-11-27',
+        'notes' => 'Kur',
     ]);
     app(CompanyContext::class)->clear();
 
@@ -69,7 +71,8 @@ test('die einteilung liefert urlaube der woche mit', function () {
             ->where('vacations.0.employee_id', $employee->id)
             ->where('vacations.0.name', 'Franz Polier')
             ->where('vacations.0.starts_on', '2026-11-23')
-            ->where('vacations.0.ends_on', '2026-11-27'));
+            ->where('vacations.0.ends_on', '2026-11-27')
+            ->where('vacations.0.notes', 'Kur'));
 });
 
 test('abgelaufene urlaube belasten die einteilung nicht', function () {
@@ -97,13 +100,14 @@ test('der wochen-druck zeigt urlauber je tag', function () {
         'employee_id' => $employee->id,
         'starts_on' => '2026-11-25',
         'ends_on' => '2026-11-25',
+        'notes' => 'nur vormittags',
     ]);
     Assignment::factory()->create(['company_id' => $company->id, 'work_date' => '2026-11-24']);
     app(CompanyContext::class)->clear();
 
     $this->get('/assignments/print?date=2026-11-25')
         ->assertOk()
-        ->assertSee('Urlaub: Hans Hilfskraft');
+        ->assertSee('Urlaub: Hans Hilfskraft (nur vormittags)');
 });
 
 test('rolle baustelle darf keinen urlaub eintragen', function () {
@@ -120,7 +124,7 @@ test('rolle baustelle darf keinen urlaub eintragen', function () {
 
 test('fremder urlaub ist unerreichbar', function () {
     actingMember();
-    $foreign = \App\Models\Company::factory()->create();
+    $foreign = Company::factory()->create();
     app(CompanyContext::class)->set($foreign);
     $employee = Employee::factory()->create(['company_id' => $foreign->id]);
     app(CompanyContext::class)->clear();

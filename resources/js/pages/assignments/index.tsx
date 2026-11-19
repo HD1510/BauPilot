@@ -35,6 +35,7 @@ type VacationRow = {
     name: string;
     starts_on: string;
     ends_on: string;
+    notes: string | null;
 };
 
 // ISO-Daten vergleichen sich als Text korrekt.
@@ -191,7 +192,13 @@ export default function AssignmentsIndex({
                                     vacation.starts_on <= day &&
                                     vacation.ends_on >= day,
                             )
-                            .map((vacation) => vacation.name)
+                            .map(
+                                (vacation) =>
+                                    vacation.name +
+                                    (vacation.notes
+                                        ? ` (${vacation.notes})`
+                                        : ''),
+                            )
                             .sort();
 
                         return (
@@ -597,6 +604,19 @@ function AssignmentForm({
                                 data.work_date,
                                 assignment ? undefined : data.work_date_until,
                             );
+                            const vacationNote = vacationing
+                                ? vacations.find(
+                                      (vacation) =>
+                                          vacation.employee_id ===
+                                              employee.id &&
+                                          vacation.starts_on <=
+                                              ((assignment
+                                                  ? ''
+                                                  : data.work_date_until) ||
+                                                  data.work_date) &&
+                                          vacation.ends_on >= data.work_date,
+                                  )?.notes
+                                : null;
 
                             return (
                                 <Label
@@ -622,7 +642,8 @@ function AssignmentForm({
                                         }
                                     />
                                     {employee.name}
-                                    {vacationing && ' (Urlaub)'}
+                                    {vacationing &&
+                                        ` (Urlaub${vacationNote ? `: ${vacationNote}` : ''})`}
                                 </Label>
                             );
                         })}
