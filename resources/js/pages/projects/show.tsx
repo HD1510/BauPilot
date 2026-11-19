@@ -5,6 +5,7 @@ import { confirmDelete } from '@/lib/confirm-delete';
 import { DocumentsSection } from '@/components/documents-section';
 import type { DocumentItem } from '@/components/documents-section';
 import Heading from '@/components/heading';
+import { RevealForm } from '@/components/reveal-form';
 import { NotesSection } from '@/components/projects/notes-section';
 import type { NoteItem } from '@/components/projects/notes-section';
 import { TasksSection } from '@/components/projects/tasks-section';
@@ -139,6 +140,46 @@ export default function ProjectsShow({
     assignableIncoming,
     assignableOutgoing,
 }: Props) {
+    // Sprungleiste: nur Abschnitte, die diese Rolle auch sieht.
+    const sections: SectionLink[] = [
+        { id: 'termine', label: 'Termine', count: appointments.length },
+        {
+            id: 'aufgaben',
+            label: 'Aufgaben',
+            count: tasks.filter((task) => !task.done_at).length,
+        },
+        { id: 'nachtraege', label: 'Nachträge', count: changeOrders.length },
+    ];
+
+    if (canViewFinancials && externalOffers !== null) {
+        sections.push({
+            id: 'fremdangebote',
+            label: 'Fremdangebote',
+            count: externalOffers.length,
+        });
+    }
+
+    if (canViewFinancials && openItems !== null) {
+        sections.push({
+            id: 'ausgangsrechnungen',
+            label: 'Ausgangsrechnungen',
+            count: openItems.length,
+        });
+    }
+
+    if (canViewFinancials && incomingInvoices !== null) {
+        sections.push({
+            id: 'eingangsrechnungen',
+            label: 'Eingangsrechnungen',
+            count: incomingInvoices.length,
+        });
+    }
+
+    sections.push(
+        { id: 'dateien', label: 'Fotos & Dateien', count: documents.length },
+        { id: 'notizen', label: 'Notizen', count: projectNotes.length },
+    );
+
     return (
         <>
             <Head title={`Projekt: ${project.title}`} />
@@ -220,13 +261,15 @@ export default function ProjectsShow({
                     </div>
                 )}
 
-                <Separator />
+                <SectionNav sections={sections} />
+
+                <Separator id="termine" className="scroll-mt-16" />
 
                 {/* Termine */}
                 <Heading
                     variant="small"
                     title="Termine"
-                    description="Fließen später in die Fristenliste ein"
+                    description="Erscheinen auch in der Fristenliste am Dashboard"
                 />
                 <div className="grid max-w-xl gap-2">
                     {appointments.map((appointment) => (
@@ -263,9 +306,13 @@ export default function ProjectsShow({
                         </p>
                     )}
                 </div>
-                {canWrite && <AddAppointmentForm projectId={project.id} />}
+                {canWrite && (
+                    <RevealForm label="Termin">
+                        <AddAppointmentForm projectId={project.id} />
+                    </RevealForm>
+                )}
 
-                <Separator />
+                <Separator id="aufgaben" className="scroll-mt-16" />
 
                 {/* Aufgaben & Mängel (M7) */}
                 <TasksSection
@@ -274,7 +321,7 @@ export default function ProjectsShow({
                     members={members}
                 />
 
-                <Separator />
+                <Separator id="nachtraege" className="scroll-mt-16" />
 
                 {/* Nachträge */}
                 <Heading
@@ -350,15 +397,20 @@ export default function ProjectsShow({
                     )}
                 </div>
                 {canWrite && (
-                    <AddChangeOrderForm
-                        projectId={project.id}
-                        showAmount={canViewFinancials}
-                    />
+                    <RevealForm label="Nachtrag">
+                        <AddChangeOrderForm
+                            projectId={project.id}
+                            showAmount={canViewFinancials}
+                        />
+                    </RevealForm>
                 )}
 
                 {canViewFinancials && externalOffers !== null && (
                     <>
-                        <Separator />
+                        <Separator
+                            id="fremdangebote"
+                            className="scroll-mt-16"
+                        />
                         <Heading
                             variant="small"
                             title="Fremdangebote"
@@ -426,18 +478,23 @@ export default function ProjectsShow({
                             )}
                         </div>
                         {canWrite && (
-                            <AddExternalOfferForm
-                                projectId={project.id}
-                                suppliers={suppliers}
-                            />
+                            <RevealForm label="Fremdangebot">
+                                <AddExternalOfferForm
+                                    projectId={project.id}
+                                    suppliers={suppliers}
+                                />
+                            </RevealForm>
                         )}
                     </>
                 )}
 
                 {canViewFinancials && openItems !== null && (
                     <>
-                        <Separator />
-                        <div className="flex max-w-3xl items-center justify-between">
+                        <Separator
+                            id="ausgangsrechnungen"
+                            className="scroll-mt-16"
+                        />
+                        <div className="flex max-w-3xl flex-wrap items-center justify-between gap-3">
                             <Heading
                                 variant="small"
                                 title="Ausgangsrechnungen"
@@ -462,7 +519,7 @@ export default function ProjectsShow({
                                 >
                                     <Link
                                         href={`/outgoing-invoices/${row.id}`}
-                                        className="flex flex-1 items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
+                                        className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
                                     >
                                         <span className="font-medium">
                                             {row.number}
@@ -471,10 +528,10 @@ export default function ProjectsShow({
                                             {row.doc_type_label}
                                         </Badge>
                                         <span className="flex-1" />
-                                        <span>
+                                        <span className="whitespace-nowrap">
                                             {formatEUR(row.gross_effective)}
                                         </span>
-                                        <span className="text-muted-foreground">
+                                        <span className="whitespace-nowrap text-muted-foreground">
                                             fällig: {formatEUR(row.due_now)}
                                         </span>
                                         <Badge variant="secondary">
@@ -510,22 +567,31 @@ export default function ProjectsShow({
                                     Noch keine Rechnungen.
                                 </p>
                             )}
-                            {canManageInvoices && (
-                                <AssignInvoiceForm
-                                    projectId={project.id}
-                                    type="outgoing"
-                                    options={assignableOutgoing}
-                                    placeholder="Bestehende Rechnung wählen"
-                                />
-                            )}
+                            {canManageInvoices &&
+                                assignableOutgoing.length > 0 && (
+                                    <RevealForm
+                                        label="Bestehende Rechnung zuordnen"
+                                        icon="link"
+                                    >
+                                        <AssignInvoiceForm
+                                            projectId={project.id}
+                                            type="outgoing"
+                                            options={assignableOutgoing}
+                                            placeholder="Bestehende Rechnung wählen"
+                                        />
+                                    </RevealForm>
+                                )}
                         </div>
                     </>
                 )}
 
                 {canViewFinancials && incomingInvoices !== null && (
                     <>
-                        <Separator />
-                        <div className="flex max-w-3xl items-center justify-between">
+                        <Separator
+                            id="eingangsrechnungen"
+                            className="scroll-mt-16"
+                        />
+                        <div className="flex max-w-3xl flex-wrap items-center justify-between gap-3">
                             <Heading
                                 variant="small"
                                 title="Eingangsrechnungen"
@@ -550,7 +616,7 @@ export default function ProjectsShow({
                                 >
                                     <Link
                                         href={`/incoming-invoices/${row.id}/edit`}
-                                        className="flex flex-1 items-center gap-4 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
+                                        className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sidebar-border/70 p-3 text-sm hover:bg-accent/50 dark:border-sidebar-border"
                                     >
                                         <span className="font-medium">
                                             {row.supplier}
@@ -559,7 +625,9 @@ export default function ProjectsShow({
                                             {row.supplier_invoice_no}
                                         </span>
                                         <span className="flex-1" />
-                                        <span>{formatEUR(row.gross)}</span>
+                                        <span className="whitespace-nowrap">
+                                            {formatEUR(row.gross)}
+                                        </span>
                                         <Badge variant="secondary">
                                             {row.payment_status_label}
                                         </Badge>
@@ -593,19 +661,25 @@ export default function ProjectsShow({
                                     Noch keine Eingangsrechnungen.
                                 </p>
                             )}
-                            {canManageInvoices && (
-                                <AssignInvoiceForm
-                                    projectId={project.id}
-                                    type="incoming"
-                                    options={assignableIncoming}
-                                    placeholder="Bestehende Eingangsrechnung wählen"
-                                />
-                            )}
+                            {canManageInvoices &&
+                                assignableIncoming.length > 0 && (
+                                    <RevealForm
+                                        label="Bestehende Rechnung zuordnen"
+                                        icon="link"
+                                    >
+                                        <AssignInvoiceForm
+                                            projectId={project.id}
+                                            type="incoming"
+                                            options={assignableIncoming}
+                                            placeholder="Bestehende Eingangsrechnung wählen"
+                                        />
+                                    </RevealForm>
+                                )}
                         </div>
                     </>
                 )}
 
-                <Separator />
+                <Separator id="dateien" className="scroll-mt-16" />
 
                 <DocumentsSection
                     documentableType="project"
@@ -617,12 +691,49 @@ export default function ProjectsShow({
                     photoGallery
                 />
 
-                <Separator />
+                <Separator id="notizen" className="scroll-mt-16" />
 
                 {/* Notizen (M7) */}
                 <NotesSection projectId={project.id} notes={projectNotes} />
             </div>
         </>
+    );
+}
+
+type SectionLink = { id: string; label: string; count: number };
+
+/**
+ * Sprungleiste: Die Projektseite ist lang — hier sieht man auf einen
+ * Blick, wo etwas liegt (Anzahl je Abschnitt), und springt direkt hin.
+ * Bleibt beim Scrollen oben stehen.
+ */
+function SectionNav({ sections }: { sections: SectionLink[] }) {
+    return (
+        <nav
+            aria-label="Abschnitte"
+            className="sticky top-0 z-10 -mx-4 flex gap-2 overflow-x-auto bg-background/95 px-4 py-2 backdrop-blur"
+        >
+            {sections.map((section) => (
+                <button
+                    key={section.id}
+                    type="button"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-sidebar-border/70 px-3 py-1.5 text-sm hover:bg-muted dark:border-sidebar-border"
+                    onClick={() =>
+                        document.getElementById(section.id)?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                        })
+                    }
+                >
+                    {section.label}
+                    {section.count > 0 && (
+                        <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
+                            {section.count}
+                        </span>
+                    )}
+                </button>
+            ))}
+        </nav>
     );
 }
 

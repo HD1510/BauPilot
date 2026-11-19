@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { RevealForm } from '@/components/reveal-form';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/format';
@@ -68,32 +69,36 @@ export function NotesSection({
                     Noch keine Notizen.
                 </p>
             )}
-            <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    post(`/projects/${projectId}/notes`, {
-                        preserveScroll: true,
-                        onSuccess: () => reset(),
-                    });
-                }}
-            >
-                <Textarea
-                    value={data.body}
-                    onChange={(event) => setData('body', event.target.value)}
-                    placeholder="Neue Notiz…"
-                    rows={2}
-                    required
-                />
-                <InputError message={errors.body} />
-                <Button
-                    type="submit"
-                    className="w-fit"
-                    disabled={processing || !data.body.trim()}
+            <RevealForm label="Notiz">
+                <form
+                    className="grid gap-2"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        post(`/projects/${projectId}/notes`, {
+                            preserveScroll: true,
+                            onSuccess: () => reset(),
+                        });
+                    }}
                 >
-                    Notiz speichern
-                </Button>
-            </form>
+                    <Textarea
+                        value={data.body}
+                        onChange={(event) =>
+                            setData('body', event.target.value)
+                        }
+                        placeholder="Neue Notiz…"
+                        rows={2}
+                        required
+                    />
+                    <InputError message={errors.body} />
+                    <Button
+                        type="submit"
+                        className="w-fit"
+                        disabled={processing || !data.body.trim()}
+                    >
+                        Notiz speichern
+                    </Button>
+                </form>
+            </RevealForm>
         </div>
     );
 }

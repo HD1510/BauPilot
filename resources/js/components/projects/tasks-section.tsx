@@ -3,6 +3,7 @@ import { CircleCheck, RotateCcw, Trash2 } from 'lucide-react';
 import { confirmDelete } from '@/lib/confirm-delete';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { RevealForm } from '@/components/reveal-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,7 +50,7 @@ export function TasksSection({
             <Heading
                 variant="small"
                 title="Aufgaben & Mängel"
-                description="Erinnerungen laufen über die Fristen-Ansicht und den täglichen Digest"
+                description="Mit Fälligkeit erscheinen sie in der Fristenliste und in der täglichen Erinnerungs-Mail"
             />
             {open.map((task) => (
                 <TaskRow key={task.id} task={task} />
@@ -71,7 +72,9 @@ export function TasksSection({
                     </div>
                 </details>
             )}
-            <CreateTaskForm projectId={projectId} members={members} />
+            <RevealForm label="Aufgabe oder Mangel">
+                <CreateTaskForm projectId={projectId} members={members} />
+            </RevealForm>
         </div>
     );
 }
