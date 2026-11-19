@@ -19,8 +19,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $employee_id
  * @property CarbonImmutable $starts_on
  * @property CarbonImmutable $ends_on
+ * @property string|null $notes
  */
-#[Fillable(['employee_id', 'starts_on', 'ends_on'])]
+#[Fillable(['employee_id', 'starts_on', 'ends_on', 'notes'])]
 class Vacation extends Model
 {
     /** @use HasFactory<VacationFactory> */

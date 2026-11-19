@@ -188,6 +188,7 @@ class EmployeeController extends Controller
                         'id' => $vacation->id,
                         'starts_on' => $vacation->starts_on->toDateString(),
                         'ends_on' => $vacation->ends_on->toDateString(),
+                        'notes' => $vacation->notes,
                     ])->values()
                 : null,
         ]);

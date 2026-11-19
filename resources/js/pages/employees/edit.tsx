@@ -55,6 +55,7 @@ type VacationItem = {
     id: number;
     starts_on: string;
     ends_on: string;
+    notes: string | null;
 };
 
 export default function EmployeesEdit({
@@ -399,6 +400,7 @@ function VacationsSection({
     const { data, setData, post, processing, errors, reset } = useForm({
         starts_on: '',
         ends_on: '',
+        notes: '',
     });
 
     const formatDate = (value: string) =>
@@ -420,9 +422,14 @@ function VacationsSection({
                     key={vacation.id}
                     className="flex items-center justify-between gap-2 rounded-lg border border-sidebar-border/70 p-2.5 text-sm dark:border-sidebar-border"
                 >
-                    <span>
+                    <span className="min-w-0">
                         {formatDate(vacation.starts_on)} bis{' '}
                         {formatDate(vacation.ends_on)}
+                        {vacation.notes && (
+                            <span className="block text-xs text-muted-foreground">
+                                {vacation.notes}
+                            </span>
+                        )}
                     </span>
                     <Button
                         variant="ghost"
@@ -476,10 +483,21 @@ function VacationsSection({
                         required
                     />
                 </div>
+                <div className="grid min-w-44 flex-1 gap-2">
+                    <Label htmlFor="vacation-notes">Notiz (optional)</Label>
+                    <Input
+                        id="vacation-notes"
+                        value={data.notes}
+                        onChange={(e) => setData('notes', e.target.value)}
+                        placeholder="z. B. Kur, nur vormittags"
+                    />
+                </div>
                 <Button type="submit" disabled={processing}>
                     Urlaub eintragen
                 </Button>
-                <InputError message={errors.starts_on ?? errors.ends_on} />
+                <InputError
+                    message={errors.starts_on ?? errors.ends_on ?? errors.notes}
+                />
             </form>
         </div>
     );

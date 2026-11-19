@@ -23,12 +23,14 @@ test('urlaub wird eingetragen und wieder entfernt', function () {
     $this->post("/employees/{$employee->id}/vacations", [
         'starts_on' => '2026-11-23',
         'ends_on' => '2026-11-27',
+        'notes' => 'Kur, nur vormittags erreichbar',
     ])->assertRedirect()->assertSessionHas('success');
 
     $vacation = Vacation::withoutGlobalScopes()->sole();
 
     expect($vacation->starts_on->toDateString())->toBe('2026-11-23')
-        ->and($vacation->ends_on->toDateString())->toBe('2026-11-27');
+        ->and($vacation->ends_on->toDateString())->toBe('2026-11-27')
+        ->and($vacation->notes)->toBe('Kur, nur vormittags erreichbar');
 
     $this->delete("/employees/{$employee->id}/vacations/{$vacation->id}")->assertRedirect();
 

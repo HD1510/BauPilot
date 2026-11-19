@@ -21,11 +21,13 @@ class VacationController extends Controller
         $validated = $request->validate([
             'starts_on' => ['required', 'date'],
             'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
+            'notes' => ['nullable', 'string', 'max:500'],
         ], [
             'ends_on.after_or_equal' => 'Das Urlaubsende darf nicht vor dem Beginn liegen.',
         ], [
             'starts_on' => 'von',
             'ends_on' => 'bis',
+            'notes' => 'Notiz',
         ]);
 
         $employee->vacations()->create([
