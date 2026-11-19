@@ -27,6 +27,8 @@ class DocumentController extends Controller
 
     private const MAX_FILE_KB = 25 * 1024; // 25 MB (Architekturblatt 6)
 
+    private const INLINE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+
     public function store(Request $request, DocumentUploader $uploader): RedirectResponse
     {
         $validated = $request->validate([
@@ -78,6 +80,10 @@ class DocumentController extends Controller
     /**
      * Inline-Anzeige für die Foto-Galerie (M7): gleiche Policy-Prüfung
      * wie der Download, aber ohne Attachment-Disposition.
+     *
+     * Inline gibt es nur Typen, die der Browser nicht als Seite ausführt.
+     * HTML, SVG und alles Unbekannte geht als Download hinaus — sonst
+     * liefe hochgeladenes Skript in der Sitzung des Betrachters.
      */
     public function preview(Document $document): Response
     {
@@ -85,11 +91,21 @@ class DocumentController extends Controller
 
         $disk = Storage::disk('documents');
 
+        // Der Typ kommt aus dem gespeicherten Inhalt, nicht aus dem Namen.
+        $mime = $disk->mimeType($document->path);
+
+        if (! is_string($mime) || ! in_array($mime, self::INLINE_MIME_TYPES, true)) {
+            return $this->download($document);
+        }
+
         if (config('filesystems.disks.documents.driver') === 's3') {
-            return redirect()->away($disk->temporaryUrl($document->path, now()->addMinutes(15)));
+            return redirect()->away($disk->temporaryUrl($document->path, now()->addMinutes(15), [
+                'ResponseContentType' => $mime,
+            ]));
         }
 
         return $disk->response($document->path, $document->original_name, [
+            'Content-Type' => $mime,
             'Content-Disposition' => 'inline',
             'Cache-Control' => 'private, max-age=300',
         ]);
