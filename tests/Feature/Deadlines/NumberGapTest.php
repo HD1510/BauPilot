@@ -73,13 +73,14 @@ test('dashboard zeigt offene posten und fristen für büro, nicht für baustelle
             ->has('overdueInvoices', 1),
         );
 
-    // Rolle Baustelle: keine Finanz-Props
+    // Rolle Baustelle: startet mit „Mein Tag" — keine Finanz-Props
     [$siteUser] = actingMember(CompanyRole::Site);
 
     $this->actingAs($siteUser)->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('canViewFinancials', false)
+            ->component('my-day')
+            ->where('tenancy.canViewFinancials', false)
             ->missing('openItems')
             ->missing('overdueInvoices'),
         );

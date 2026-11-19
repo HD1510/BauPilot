@@ -55,6 +55,8 @@ class SiteReportController extends Controller
             // Die Erfassung schickt die Ziel-Firma EXPLIZIT mit (Abschnitt 9) —
             // eingefroren beim Laden der Seite, nicht beim Absenden.
             'companyId' => app(CompanyContext::class)->requireId(),
+            // Von „Mein Tag" aus ist das Projekt schon gewählt.
+            'projectId' => $request->integer('project') ?: null,
         ]);
     }
 

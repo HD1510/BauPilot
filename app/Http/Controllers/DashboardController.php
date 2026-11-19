@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CompanyRole;
 use App\Enums\IncomingPaymentStatus;
 use App\Enums\ProjectStatus;
 use App\Models\IncomingInvoice;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\Dashboard\MyDay;
 use App\Support\Deadlines\Deadline;
 use App\Support\Deadlines\DeadlineKind;
 use App\Support\Deadlines\DeadlineService;
@@ -27,6 +29,7 @@ class DashboardController extends Controller
         DeadlineService $deadlineService,
         OpenItemsQuery $openItems,
         NumberGapService $numberGaps,
+        MyDay $myDay,
     ): Response {
         /** @var User $user */
         $user = $request->user();
@@ -35,8 +38,14 @@ class DashboardController extends Controller
             return Inertia::render('dashboard', ['hasCompany' => false]);
         }
 
-        $financials = $user->can('view-financials');
         $today = CarbonImmutable::parse(Date::today());
+
+        // Die Baustelle startet mit „Mein Tag" statt mit Büro-Kennzahlen.
+        if ($user->currentRole() === CompanyRole::Site) {
+            return Inertia::render('my-day', $myDay->for($user, $today));
+        }
+
+        $financials = $user->can('view-financials');
 
         $all = $deadlineService->upcoming(includeFinancials: $financials);
 

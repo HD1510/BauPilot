@@ -23,6 +23,7 @@ type Props = {
     projects: { id: number; title: string }[];
     employees: { id: number; name: string }[];
     companyId: number;
+    projectId?: number | null;
 };
 
 type EntryRow = { employee_id: string; hours: string };
@@ -37,8 +38,14 @@ export default function SiteReportsCreate({
     projects,
     employees,
     companyId,
+    projectId: presetProjectId = null,
 }: Props) {
-    const [projectId, setProjectId] = useState('');
+    const [projectId, setProjectId] = useState(
+        presetProjectId !== null &&
+            projects.some((project) => project.id === presetProjectId)
+            ? String(presetProjectId)
+            : '',
+    );
     const [reportDate, setReportDate] = useState(
         new Date().toISOString().slice(0, 10),
     );

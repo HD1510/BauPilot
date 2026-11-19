@@ -155,7 +155,19 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent ref={contentRef}>
-                <NavMain items={mainNavItems} label="Übersicht" />
+                <NavMain
+                    items={
+                        // Die Baustelle startet mit „Mein Tag".
+                        tenancy.role === 'site'
+                            ? mainNavItems.map((item, index) =>
+                                  index === 0
+                                      ? { ...item, title: 'Mein Tag' }
+                                      : item,
+                              )
+                            : mainNavItems
+                    }
+                    label="Übersicht"
+                />
                 <NavMain
                     items={
                         tenancy.canViewFinancials
